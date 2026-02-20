@@ -1,6 +1,21 @@
 import { Stack } from 'expo-router';
-import './global.css';
+import { useEffect } from 'react';
+import { initDatabase } from '../src/database/initDB';
 
 export default function RootLayout() {
-  return <Stack />;
+  useEffect(() => {
+    // Initialize database on app start
+    initDatabase().catch((error) => {
+      console.error('Failed to initialize database:', error);
+    });
+  }, []);
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade',
+      }}
+    />
+  );
 }
