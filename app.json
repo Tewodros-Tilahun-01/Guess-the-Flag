@@ -4,7 +4,6 @@
     "slug": "guess-the-flag",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
     "scheme": "guesstheflag",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,10 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#6366F1",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#6366F1"
       },
       "package": "com.guesstheflag.app",
       "edgeToEdgeEnabled": true,
@@ -25,21 +21,16 @@
       "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"]
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#6366F1",
-          "dark": {
-            "backgroundColor": "#1E1B4B"
-          }
+          "backgroundColor": "#6366F1"
         }
       ]
     ],
