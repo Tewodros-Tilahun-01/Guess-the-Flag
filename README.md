@@ -1,6 +1,6 @@
-# Expo + NativeWind Starter
+# Expo + React Native Starter
 
-A modern React Native starter template with Expo Router and NativeWind (Tailwind CSS) pre-configured for rapid cross-platform development.
+A modern React Native starter template with Expo Router pre-configured for rapid cross-platform development.
 
 ## Tech Stack
 
@@ -9,8 +9,7 @@ A modern React Native starter template with Expo Router and NativeWind (Tailwind
 - **Expo Router** ~6.0 - File-based routing for navigation
 - **React** 19.1.0 - UI library
 - **TypeScript** ~5.9 - Type safety
-- **NativeWind** 5.0 - Tailwind CSS for React Native
-- **Tailwind CSS** 4.1 - Utility-first CSS framework
+- **StyleSheet** - React Native styling
 - **React Navigation** 7.x - Navigation library
 - **Reanimated** ~4.1 - Smooth animations
 - **Gesture Handler** ~2.28 - Touch gesture system
@@ -19,7 +18,7 @@ A modern React Native starter template with Expo Router and NativeWind (Tailwind
 
 - ✅ File-based routing with Expo Router
 - ✅ TypeScript configured with strict mode
-- ✅ NativeWind (Tailwind CSS) styling
+- ✅ StyleSheet styling
 - ✅ Path aliases (`@/*`)
 - ✅ Prettier + ESLint configured
 - ✅ React Compiler enabled
@@ -76,8 +75,8 @@ Start developing by editing files in the `app/` directory. The app uses file-bas
 
 - [Expo Documentation](https://docs.expo.dev/)
 - [Expo Router](https://docs.expo.dev/router/introduction/)
-- [NativeWind](https://www.nativewind.dev/)
 - [React Native](https://reactnative.dev/)
+- [React Native StyleSheet](https://reactnative.dev/docs/stylesheet)
 
 ## License
 
