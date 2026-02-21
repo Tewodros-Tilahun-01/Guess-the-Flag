@@ -203,7 +203,7 @@ export class HostAnnouncer {
 
     this.announcementServer.on('error', (error: Error) => {
       console.error('Announcement server error:', error);
-      throw error;
+      // Don't throw, just log - the game server is still working
     });
   }
 
@@ -223,14 +223,23 @@ export class HostAnnouncer {
     this.hostInfo.playerCount = count;
   }
 
-  stopAnnouncing(): void {
-    if (this.announcementServer) {
-      try {
-        this.announcementServer.close();
-      } catch (error) {
-        console.error('Error closing announcement server:', error);
+  stopAnnouncing(): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.announcementServer) {
+        try {
+          this.announcementServer.close(() => {
+            console.log('Announcement server closed successfully');
+            this.announcementServer = null;
+            resolve();
+          });
+        } catch (error) {
+          console.error('Error closing announcement server:', error);
+          this.announcementServer = null;
+          resolve();
+        }
+      } else {
+        resolve();
       }
-      this.announcementServer = null;
-    }
+    });
   }
 }

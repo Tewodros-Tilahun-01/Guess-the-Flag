@@ -42,13 +42,16 @@ export default function Lobby() {
       // Cleanup on unmount
       console.log('Lobby unmounting, cleaning up...');
 
+      // Clean up announcer first
       if (hostAnnouncer) {
-        hostAnnouncer.stopAnnouncing();
+        hostAnnouncer.stopAnnouncing().then(() => {
+          console.log('Announcer cleanup complete');
+        });
         hostAnnouncer = null;
       }
 
+      // Then clean up server
       if (hostServer) {
-        // Stop server asynchronously but don't wait
         hostServer.stop().then(() => {
           console.log('Server cleanup complete');
         });
@@ -58,7 +61,14 @@ export default function Lobby() {
   }, []);
 
   const startHostServer = async () => {
-    // Clean up any existing server first
+    // Clean up any existing server and announcer first
+    if (hostAnnouncer) {
+      console.log('Cleaning up existing announcer...');
+      await hostAnnouncer.stopAnnouncing();
+      hostAnnouncer = null;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
     if (hostServer) {
       console.log('Cleaning up existing server...');
       await hostServer.stop();
