@@ -59,7 +59,9 @@ export class HostServer {
 
       this.server.listen({ port, host: '0.0.0.0' }, () => {
         const address = this.server.address();
-        console.log(`✅ Server listening on ${address.address}:${address.port}`);
+        console.log(
+          `✅ Server listening on ${address.address}:${address.port}`,
+        );
         resolve(`${address.address}:${address.port}`);
       });
 
@@ -239,17 +241,39 @@ export class HostServer {
     });
   }
 
-  stop(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
+  stop(): Promise<void> {
+    return new Promise((resolve) => {
+      console.log('Stopping server...');
 
-    this.clients.forEach((socket) => socket.destroy());
-    this.clients.clear();
+      if (this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
 
-    if (this.server) {
-      this.server.close();
-    }
+      this.clients.forEach((socket) => {
+        try {
+          socket.destroy();
+        } catch (error) {
+          console.error('Error destroying socket:', error);
+        }
+      });
+      this.clients.clear();
+
+      if (this.server) {
+        try {
+          this.server.close(() => {
+            console.log('Server closed successfully');
+            this.server = null;
+            resolve();
+          });
+        } catch (error) {
+          console.error('Error closing server:', error);
+          this.server = null;
+          resolve();
+        }
+      } else {
+        resolve();
+      }
+    });
   }
 }

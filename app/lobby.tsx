@@ -40,15 +40,32 @@ export default function Lobby() {
 
     return () => {
       // Cleanup on unmount
+      console.log('Lobby unmounting, cleaning up...');
+
       if (hostAnnouncer) {
         hostAnnouncer.stopAnnouncing();
         hostAnnouncer = null;
+      }
+
+      if (hostServer) {
+        // Stop server asynchronously but don't wait
+        hostServer.stop().then(() => {
+          console.log('Server cleanup complete');
+        });
+        hostServer = null;
       }
     };
   }, []);
 
   const startHostServer = async () => {
-    console.log('Scanning for hosts..1.');
+    // Clean up any existing server first
+    if (hostServer) {
+      console.log('Cleaning up existing server...');
+      await hostServer.stop();
+      hostServer = null;
+      // Wait a bit more for the port to be fully released
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
 
     const playerId = `host_${Date.now()}`;
     const hostPlayer = {
@@ -74,20 +91,21 @@ export default function Lobby() {
         router.push('/result' as any);
       }
     });
-    console.log('Scanning for hosts..2.');
 
     try {
       const address = await hostServer.start(8080);
-
       setServerAddress(address);
       setPlayers([hostPlayer]);
 
-      // Try to start auto-discovery
-      console.log('Scanning for hosts..4.');
-
+      // Try to get local IP and start auto-discovery
       try {
         const localIp = await getLocalIpAddress();
+        console.log('Local IP retrieved:', localIp);
+
         if (localIp && localIp !== '0.0.0.0') {
+          // Update server address with actual IP
+          setServerAddress(`${localIp}:8080`);
+
           hostAnnouncer = new HostAnnouncer({
             name: `${playerName}'s Game`,
             address: localIp,
@@ -97,6 +115,7 @@ export default function Lobby() {
           hostAnnouncer.startAnnouncing(8081);
           console.log('✅ Auto-discovery enabled');
         } else {
+          console.warn('Could not get valid local IP, using server address');
           Alert.alert(
             'Auto-Discovery Failed',
             'Could not get local IP address. Players will need to manually enter your IP to join.',
@@ -117,10 +136,19 @@ export default function Lobby() {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       console.error('Failed to start server:', errorMessage);
-      Alert.alert(
-        'Server Failed to Start',
-        `Could not start the game server.\n\nError: ${errorMessage}\n\nThis is likely due to:\n• Platform limitations\n• Missing network permissions\n• TCP socket not supported on this device\n\nTry:\n1. Restart the app\n2. Check app permissions\n3. Try on a different device`,
-      );
+
+      // Check if it's the address in use error
+      if (errorMessage.includes('EADDRINUSE')) {
+        Alert.alert(
+          'Port Already In Use',
+          'The server port is already in use. Please restart the app and try again.',
+        );
+      } else {
+        Alert.alert(
+          'Server Failed to Start',
+          `Could not start the game server.\n\nError: ${errorMessage}\n\nThis is likely due to:\n• Platform limitations\n• Missing network permissions\n• TCP socket not supported on this device\n\nTry:\n1. Restart the app\n2. Check app permissions\n3. Try on a different device`,
+        );
+      }
     }
   };
 
