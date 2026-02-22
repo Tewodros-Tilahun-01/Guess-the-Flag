@@ -1,20 +1,28 @@
 import NetInfo from '@react-native-community/netinfo';
-import TcpSocket from 'react-native-tcp-socket';
+import { NetworkInfo } from 'react-native-network-info';
 
 export const getLocalIpAddress = async (): Promise<string> => {
   try {
-    // First try NetInfo
+    // Try react-native-network-info first (works with both WiFi and cellular)
+    const ip = await NetworkInfo.getIPV4Address();
+    console.log('NetworkInfo IP:', ip);
+    if (ip && ip !== '0.0.0.0') {
+      return ip;
+    }
+
+    // Fallback to NetInfo
     const state = await NetInfo.fetch();
     console.log('Network state:', JSON.stringify(state, null, 2));
+
     // Get IP address from network state
     if (
       state.details &&
       'ipAddress' in state.details &&
       state.details.ipAddress
     ) {
-      const ip = state.details.ipAddress as string;
-      if (ip && ip !== '0.0.0.0') {
-        return ip;
+      const ipAddress = state.details.ipAddress as string;
+      if (ipAddress && ipAddress !== '0.0.0.0') {
+        return ipAddress;
       }
     }
 
@@ -26,42 +34,7 @@ export const getLocalIpAddress = async (): Promise<string> => {
       }
     }
 
-    // Alternative method: Create a temporary socket to discover local IP
-    return new Promise((resolve) => {
-      const socket = TcpSocket.createConnection(
-        {
-          port: 80,
-          host: '8.8.8.8', // Google DNS
-        },
-        () => {
-          const address = socket.address();
-          socket.destroy();
-          if (
-            address &&
-            typeof address === 'object' &&
-            'address' in address &&
-            address.address &&
-            address.address !== '0.0.0.0'
-          ) {
-            resolve(address.address);
-          } else {
-            resolve('0.0.0.0');
-          }
-        },
-      );
-
-      socket.setTimeout(2000);
-
-      socket.on('error', () => {
-        socket.destroy();
-        resolve('0.0.0.0');
-      });
-
-      socket.on('timeout', () => {
-        socket.destroy();
-        resolve('0.0.0.0');
-      });
-    });
+    return '0.0.0.0';
   } catch (error) {
     console.error('Error getting IP address:', error);
     return '0.0.0.0';
