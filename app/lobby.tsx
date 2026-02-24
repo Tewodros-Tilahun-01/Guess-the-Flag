@@ -99,6 +99,7 @@ export default function Lobby() {
       setGameState,
       setCurrentQuestion,
       setTimeRemaining,
+      useGameStore.getState().setPlayerLeftNotification,
     );
 
     await newConnection.connect(ip, port, playerId, playerName);

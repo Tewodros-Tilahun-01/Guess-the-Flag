@@ -10,6 +10,7 @@ export const createMultiplayerConnection = (
   setGameState: (state: any) => void,
   setCurrentQuestion: (question: any) => void,
   setTimeRemaining: (time: number) => void,
+  setPlayerLeftNotification: (playerName: string | null) => void,
 ) => {
   return new ClientConnection((message) => {
     switch (message.type) {
@@ -36,6 +37,9 @@ export const createMultiplayerConnection = (
       case 'SERVER_STOPPED':
         handleServerStopped(router, message.payload.reason);
         break;
+      case 'PLAYER_LEFT':
+        setPlayerLeftNotification(message.payload.playerName);
+        break;
     }
   });
 };
@@ -54,7 +58,7 @@ const handleServerStopped = (router: any, reason: string) => {
           text: 'Back to Menu',
           onPress: () => {
             resetGame();
-            router.replace('/' as any);
+            router.dismissTo('/multiplayer-menu' as any);
           },
         },
       ],

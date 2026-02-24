@@ -1,8 +1,10 @@
+import { useBackHandler } from '@/src/hooks/useBackHandler';
 import { getMultiplayerConnection } from '@/src/utils/connectionManager';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   Image,
   StyleSheet,
   Text,
@@ -26,17 +28,26 @@ export default function Game() {
     currentQuestion,
     currentQuestionIndex,
     timeRemaining,
+    playerLeftNotification,
     setCurrentQuestion,
     setCurrentQuestionIndex,
     setTimeRemaining,
     addAnswer,
     setGameState,
+    setPlayerLeftNotification,
   } = useGameStore();
 
   const [answer, setAnswer] = useState('');
   const [timer, setTimer] = useState<ReturnType<typeof setInterval> | null>(
     null,
   );
+
+  // Animation for notification
+  const slideAnim = useRef(new Animated.Value(-100)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Handle back button for multiplayer
+  useBackHandler();
 
   useEffect(() => {
     if (gameMode === 'single') {
@@ -52,6 +63,49 @@ export default function Game() {
       if (timer) clearInterval(timer);
     };
   }, [currentQuestion]);
+
+  // Animate notification in/out
+  useEffect(() => {
+    if (playerLeftNotification) {
+      // Slide in and fade in
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 18,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Auto-hide after 4 seconds
+      const timeout = setTimeout(() => {
+        // Slide out and fade out
+        Animated.parallel([
+          Animated.timing(slideAnim, {
+            toValue: -200,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          setPlayerLeftNotification(null);
+          slideAnim.setValue(-100);
+          fadeAnim.setValue(0);
+        });
+      }, 4000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [playerLeftNotification]);
 
   const startSinglePlayerGame = async () => {
     await gameEngine.generateQuestions(gameConfig.questionsCount);
@@ -99,12 +153,6 @@ export default function Game() {
     // Send answer to server in multiplayer mode
     const connection = getMultiplayerConnection();
     if (gameMode === 'multiplayer' && connection && playerId) {
-      console.log(
-        'Submitting answer - Player ID:',
-        playerId,
-        'Answer:',
-        answer,
-      );
       connection.send({
         type: 'SUBMIT_ANSWER',
         payload: {
@@ -164,6 +212,40 @@ export default function Game() {
       style={styles.container}
     >
       <View style={styles.content}>
+        {/* Player Left Notification */}
+        {playerLeftNotification && (
+          <Animated.View
+            style={[
+              styles.notificationContainer,
+              {
+                transform: [{ translateY: slideAnim }],
+                opacity: fadeAnim,
+              },
+            ]}
+          >
+            <View style={styles.notificationWrapper}>
+              <LinearGradient
+                colors={['#73c6e9ff', '#7ea1ecff', '#8aaaeeff']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.notification}
+              >
+                <View style={styles.notificationContent}>
+                  <View style={styles.notificationIcon}>
+                    <Text style={styles.notificationEmoji}>👋</Text>
+                  </View>
+                  <View style={styles.notificationTextContainer}>
+                    <Text style={styles.notificationTitle}>Player Left</Text>
+                    <Text style={styles.notificationMessage}>
+                      {playerLeftNotification} has left the game
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </View>
+          </Animated.View>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.questionBadge}>
@@ -262,6 +344,59 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 64,
+  },
+  notificationContainer: {
+    position: 'absolute',
+    top: 12,
+    left: 16,
+    right: 16,
+    zIndex: 1000,
+  },
+  notificationWrapper: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
+    opacity: 0.7,
+  },
+  notification: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  notificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  notificationEmoji: {
+    fontSize: 24,
+  },
+  notificationTextContainer: {
+    flex: 1,
+  },
+  notificationTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 2,
+    letterSpacing: 0.3,
+  },
+  notificationMessage: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.95)',
+    lineHeight: 18,
   },
   header: {
     flexDirection: 'row',

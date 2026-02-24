@@ -11,7 +11,8 @@ export type MessageType =
   | 'NEXT_QUESTION'
   | 'GAME_END'
   | 'TIME_UPDATE'
-  | 'SERVER_STOPPED';
+  | 'SERVER_STOPPED'
+  | 'PLAYER_LEFT';
 
 export interface BaseMessage {
   type: MessageType;
@@ -88,6 +89,14 @@ export interface ServerStoppedMessage extends BaseMessage {
   };
 }
 
+export interface PlayerLeftMessage extends BaseMessage {
+  type: 'PLAYER_LEFT';
+  payload: {
+    playerId: string;
+    playerName: string;
+  };
+}
+
 export type GameMessage =
   | JoinGameMessage
   | PlayerListUpdateMessage
@@ -99,4 +108,5 @@ export type GameMessage =
   | NextQuestionMessage
   | GameEndMessage
   | TimeUpdateMessage
-  | ServerStoppedMessage;
+  | ServerStoppedMessage
+  | PlayerLeftMessage;

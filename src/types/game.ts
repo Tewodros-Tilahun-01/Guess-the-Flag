@@ -48,6 +48,7 @@ export interface GameStore {
   currentQuestionIndex: number;
   answers: Answer[];
   timeRemaining: number;
+  playerLeftNotification: string | null;
 
   // Actions
   setGameMode: (mode: GameMode) => void;
@@ -63,5 +64,6 @@ export interface GameStore {
   setCurrentQuestionIndex: (index: number) => void;
   addAnswer: (answer: Answer) => void;
   setTimeRemaining: (time: number) => void;
+  setPlayerLeftNotification: (playerName: string | null) => void;
   resetGame: () => void;
 }

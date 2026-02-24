@@ -16,6 +16,7 @@ const initialState = {
   currentQuestionIndex: 0,
   answers: [],
   timeRemaining: 0,
+  playerLeftNotification: null,
 };
 
 export const useGameStore = create<GameStore>((set) => ({
@@ -48,6 +49,8 @@ export const useGameStore = create<GameStore>((set) => ({
   addAnswer: (answer) =>
     set((state) => ({ answers: [...state.answers, answer] })),
   setTimeRemaining: (time) => set({ timeRemaining: time }),
+  setPlayerLeftNotification: (playerName) =>
+    set({ playerLeftNotification: playerName }),
 
   resetGame: () => set(initialState),
 }));

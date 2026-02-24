@@ -68,6 +68,7 @@ export default function JoinGame() {
       setGameState,
       setCurrentQuestion,
       setTimeRemaining,
+      useGameStore.getState().setPlayerLeftNotification,
     );
 
     try {

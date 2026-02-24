@@ -146,8 +146,21 @@ export class HostServer {
   private handleClientDisconnect(socket: any): void {
     for (const [playerId, clientSocket] of this.clients.entries()) {
       if (clientSocket === socket) {
+        const player = this.players.find((p) => p.id === playerId);
         this.clients.delete(playerId);
         this.players = this.players.filter((p) => p.id !== playerId);
+
+        // Broadcast player left notification
+        if (player) {
+          this.broadcast({
+            type: 'PLAYER_LEFT',
+            payload: {
+              playerId: player.id,
+              playerName: player.name,
+            },
+          });
+        }
+
         this.broadcastPlayerList();
         break;
       }
