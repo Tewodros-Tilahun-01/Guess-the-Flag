@@ -12,17 +12,10 @@ export class HostServer {
   private gameConfig: GameConfig;
   private timer: ReturnType<typeof setInterval> | null = null;
   private timeRemaining: number = 0;
-  private onStateUpdate: (state: any) => void;
 
-  constructor(
-    hostPlayer: Player,
-    gameConfig: GameConfig,
-    onStateUpdate: (state: any) => void,
-  ) {
+  constructor(gameConfig: GameConfig) {
     this.gameEngine = new GameEngine();
     this.gameConfig = gameConfig;
-    this.players = [hostPlayer];
-    this.onStateUpdate = onStateUpdate;
   }
 
   start(port: number = 8080): Promise<string> {
@@ -90,18 +83,24 @@ export class HostServer {
     socket: any,
     payload: { playerId: string; playerName: string },
   ): void {
+    // Check if this is the first player (host)
+    const isFirstPlayer = this.players.length === 0;
+
     const player: Player = {
       id: payload.playerId,
       name: payload.playerName,
-      isReady: false,
-      isHost: false,
+      isReady: isFirstPlayer, // First player (host) is auto-ready
+      isHost: isFirstPlayer, // First player is the host
     };
 
     this.players.push(player);
     this.clients.set(payload.playerId, socket);
 
+    console.log(
+      `Player joined: ${player.name} (${player.isHost ? 'Host' : 'Player'})`,
+    );
+
     this.broadcastPlayerList();
-    this.onStateUpdate({ players: this.players });
   }
 
   private handlePlayerReady(payload: {
@@ -112,7 +111,6 @@ export class HostServer {
     if (player) {
       player.isReady = payload.isReady;
       this.broadcastPlayerList();
-      this.onStateUpdate({ players: this.players });
     }
   }
 
@@ -133,7 +131,8 @@ export class HostServer {
       currentQuestion.country.flag_file,
     );
 
-    this.onStateUpdate({ answer });
+    // TODO: Store or broadcast answer results
+    console.log('Answer submitted:', answer);
   }
 
   private handleClientDisconnect(socket: any): void {
@@ -142,7 +141,6 @@ export class HostServer {
         this.clients.delete(playerId);
         this.players = this.players.filter((p) => p.id !== playerId);
         this.broadcastPlayerList();
-        this.onStateUpdate({ players: this.players });
         break;
       }
     }
@@ -196,8 +194,6 @@ export class HostServer {
         payload: { timeRemaining: this.timeRemaining },
       });
 
-      this.onStateUpdate({ timeRemaining: this.timeRemaining });
-
       if (this.timeRemaining <= 0) {
         this.nextQuestion();
       }
@@ -229,8 +225,6 @@ export class HostServer {
       type: 'GAME_END',
       payload: { answers: [] },
     });
-
-    this.onStateUpdate({ gameEnded: true });
   }
 
   updateConfig(config: GameConfig): void {

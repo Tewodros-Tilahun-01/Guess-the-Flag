@@ -1,3 +1,4 @@
+import { getMultiplayerConnection } from '@/src/utils/connectionManager';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -12,8 +13,6 @@ import {
 import { GameEngine } from '../src/engine/GameEngine';
 import { useGameStore } from '../src/store/gameStore';
 import { getFlagUrlHD } from '../src/utils/flagUrl';
-import { clientConnection } from './join-game';
-import { hostServer } from './lobby';
 
 const gameEngine = new GameEngine();
 
@@ -21,7 +20,6 @@ export default function Game() {
   const router = useRouter();
   const {
     gameMode,
-    isHost,
     playerId,
     playerName,
     gameConfig,
@@ -98,14 +96,16 @@ export default function Game() {
 
     addAnswer(answerObj);
 
-    if (gameMode === 'multiplayer' && !isHost && clientConnection && playerId) {
+    // Send answer to server in multiplayer mode
+    const connection = getMultiplayerConnection();
+    if (gameMode === 'multiplayer' && connection && playerId) {
       console.log(
-        'Submitting answer to host - Player ID:',
+        'Submitting answer - Player ID:',
         playerId,
         'Answer:',
         answer,
       );
-      clientConnection.send({
+      connection.send({
         type: 'SUBMIT_ANSWER',
         payload: {
           playerId: playerId,
@@ -139,9 +139,8 @@ export default function Game() {
         setGameState('ended');
         router.push('/result' as any);
       }
-    } else if (isHost && hostServer) {
-      hostServer.nextQuestion();
     }
+    // In multiplayer, the server handles next question automatically
   };
 
   if (!currentQuestion) {
@@ -245,7 +244,6 @@ export default function Game() {
     </LinearGradient>
   );
 }
-
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,

@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import {
   FlatList,
   Image,
@@ -13,6 +13,8 @@ import { getFlagUrlMD } from '../src/utils/flagUrl';
 
 export default function Result() {
   const router = useRouter();
+  const navigation = useNavigation();
+
   const { answers, playerName, resetGame } = useGameStore();
 
   const playerAnswers = answers.filter((a) => a.playerName === playerName);
@@ -23,7 +25,10 @@ export default function Result() {
 
   const handlePlayAgain = () => {
     resetGame();
-    router.push('/');
+
+    router.dismissAll();
+    // Replace the current screen with the new one (e.g., the dashboard)
+    router.replace('/');
   };
 
   const getScoreColors = (): [string, string] => {

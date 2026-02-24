@@ -9,14 +9,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { HostAnnouncer } from '../src/multiplayer/HostDiscovery';
+import { ClientConnection } from '../src/multiplayer/ClientConnection';
 import { HostServer } from '../src/multiplayer/HostServer';
 import { useGameStore } from '../src/store/gameStore';
+import {
+  getMultiplayerConnection,
+  setMultiplayerConnection,
+} from '../src/utils/connectionManager';
+import { createMultiplayerConnection } from '../src/utils/multiplayerConnection';
 import { getLocalIpAddress } from '../src/utils/network';
-import { clientConnection } from './join-game';
 
 let hostServer: HostServer | null = null;
-let hostAnnouncer: HostAnnouncer | null = null;
 
 export default function Lobby() {
   const router = useRouter();
@@ -28,167 +31,95 @@ export default function Lobby() {
     gameConfig,
     setPlayers,
     setGameState,
+    setCurrentQuestion,
+    setGameConfig,
     setTimeRemaining,
-    addAnswer,
   } = useGameStore();
   const [isReady, setIsReady] = useState(false);
   const [serverAddress, setServerAddress] = useState('');
+  const [connection, setConnection] = useState<ClientConnection | null>(null);
 
   useEffect(() => {
     if (isHost) {
-      startHostServer();
+      initializeHost();
+    } else {
+      setConnection(getMultiplayerConnection());
     }
 
     return () => {
-      // Cleanup on unmount
-      console.log('Lobby unmounting, cleaning up...');
-
-      // Clean up announcer first
-      if (hostAnnouncer) {
-        hostAnnouncer.stopAnnouncing().then(() => {
-          console.log('Announcer cleanup complete');
-        });
-        hostAnnouncer = null;
-      }
-
-      // Then clean up server
-      if (hostServer) {
-        hostServer.stop().then(() => {
-          console.log('Server cleanup complete');
-        });
+      if (isHost && hostServer) {
+        hostServer.stop();
         hostServer = null;
+      }
+      if (connection) {
+        connection.disconnect();
       }
     };
   }, []);
 
-  const startHostServer = async () => {
-    // Clean up any existing server and announcer first
-    if (hostAnnouncer) {
-      console.log('Cleaning up existing announcer...');
-      await hostAnnouncer.stopAnnouncing();
-      hostAnnouncer = null;
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
-    if (hostServer) {
-      console.log('Cleaning up existing server...');
-      await hostServer.stop();
-      hostServer = null;
-      // Wait a bit more for the port to be fully released
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-
-    const playerId = `host_${Date.now()}`;
-    const hostPlayer = {
-      id: playerId,
-      name: playerName,
-      isReady: true,
-      isHost: true,
-    };
-
-    hostServer = new HostServer(hostPlayer, gameConfig, (state) => {
-      if (state.players) {
-        setPlayers(state.players);
-        // Update player count in announcer
-        if (hostAnnouncer) {
-          hostAnnouncer.updatePlayerCount(state.players.length);
-        }
-      }
-      if (state.timeRemaining !== undefined)
-        setTimeRemaining(state.timeRemaining);
-      if (state.answer) addAnswer(state.answer);
-      if (state.gameEnded) {
-        setGameState('ended');
-        router.push('/result' as any);
-      }
-    });
-
+  const initializeHost = async () => {
     try {
+      // Start server (no host player needed!)
+      hostServer = new HostServer(gameConfig);
       const address = await hostServer.start(8080);
-      setServerAddress(address);
-      setPlayers([hostPlayer]);
+      console.log('Server started:', address);
 
-      // Try to get local IP and start auto-discovery
-      // COMMENTED OUT FOR TESTING - Use manual IP entry instead
-      /*
-      try {
-        const localIp = await getLocalIpAddress();
-        console.log('Local IP retrieved:', localIp);
+      // Get local IP
+      const localIp = await getLocalIpAddress();
+      console.log('Local IP retrieved:', localIp);
 
-        if (localIp && localIp !== '0.0.0.0') {
-          // Update server address with actual IP
-          setServerAddress(`${localIp}:8080`);
+      if (localIp && localIp !== '0.0.0.0') {
+        setServerAddress(`${localIp}:8080`);
 
-          hostAnnouncer = new HostAnnouncer({
-            name: `${playerName}'s Game`,
-            address: localIp,
-            port: 8080,
-            playerCount: 1,
-          });
-          hostAnnouncer.startAnnouncing(8081);
-          console.log('✅ Auto-discovery enabled');
-        } else {
-          console.warn('Could not get valid local IP, using server address');
-          Alert.alert(
-            'Auto-Discovery Failed',
-            'Could not get local IP address. Players will need to manually enter your IP to join.',
-          );
-        }
-      } catch (discoveryError) {
-        const errorMessage =
-          discoveryError instanceof Error
-            ? discoveryError.message
-            : String(discoveryError);
-        console.error('Auto-discovery error:', errorMessage);
-        Alert.alert(
-          'Auto-Discovery Unavailable',
-          `Auto-discovery could not be started.\n\nReason: ${errorMessage}\n\nYour game is still running! Share your IP address (${serverAddress}) with players so they can join manually.`,
-        );
-      }
-      */
-
-      // Get local IP for display
-      try {
-        const localIp = await getLocalIpAddress();
-        console.log('Local IP retrieved:', localIp);
-        if (localIp && localIp !== '0.0.0.0') {
-          setServerAddress(`${localIp}:8080`);
-        }
-      } catch (error) {
-        console.error('Error getting local IP:', error);
+        // Connect as client to own server
+        await connectToServer('127.0.0.1', 8080);
+      } else {
+        setServerAddress(address);
+        Alert.alert('Warning', 'Could not get local IP.');
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error('Failed to start server:', errorMessage);
+      console.error('Failed to start host:', errorMessage);
 
-      // Check if it's the address in use error
       if (errorMessage.includes('EADDRINUSE')) {
-        Alert.alert(
-          'Port Already In Use',
-          'The server port is already in use. Please restart the app and try again.',
-        );
+        Alert.alert('Port Already In Use', 'Please restart the app.');
       } else {
-        Alert.alert(
-          'Server Failed to Start',
-          `Could not start the game server.\n\nError: ${errorMessage}\n\nThis is likely due to:\n• Platform limitations\n• Missing network permissions\n• TCP socket not supported on this device\n\nTry:\n1. Restart the app\n2. Check app permissions\n3. Try on a different device`,
-        );
+        Alert.alert('Server Failed to Start', errorMessage);
       }
     }
+  };
+
+  const connectToServer = async (ip: string, port: number) => {
+    // Use shared connection utility (same code as join-game!)
+    const newConnection = createMultiplayerConnection(
+      router,
+      setPlayers,
+      setGameConfig,
+      setGameState,
+      setCurrentQuestion,
+      setTimeRemaining,
+    );
+
+    await newConnection.connect(ip, port, playerId, playerName);
+    setConnection(newConnection);
+    setMultiplayerConnection(newConnection);
+    setConnection(getMultiplayerConnection());
+    console.log('✅ Connected to server');
   };
 
   const handleReady = () => {
     const newReadyState = !isReady;
     setIsReady(newReadyState);
 
-    if (!isHost && clientConnection && playerId) {
+    if (connection && playerId) {
       console.log(
-        'Sending ready status to host:',
+        'Sending ready status:',
         newReadyState,
         'Player ID:',
         playerId,
       );
-      clientConnection.send({
+      connection.send({
         type: 'PLAYER_READY',
         payload: {
           playerId: playerId,
@@ -209,7 +140,6 @@ export default function Lobby() {
 
     setGameState('playing');
     await hostServer.startGame();
-    router.push('/game' as any);
   };
 
   const canStartGame = isHost && players.every((p) => p.isReady);
@@ -613,5 +543,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-export { hostAnnouncer, hostServer };

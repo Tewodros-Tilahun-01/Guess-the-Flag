@@ -5,6 +5,7 @@ import { deserializeMessage, serializeMessage } from './messageTypes';
 export class ClientConnection {
   private socket: any;
   private onMessage: (message: GameMessage) => void;
+  private buffer: string = '';
 
   constructor(onMessage: (message: GameMessage) => void) {
     this.onMessage = onMessage;
@@ -31,8 +32,30 @@ export class ClientConnection {
       });
 
       this.socket.on('data', (data: Buffer) => {
-        const message = deserializeMessage(data.toString());
-        this.onMessage(message);
+        try {
+          // Add incoming data to buffer
+          this.buffer += data.toString();
+
+          // Process complete messages (separated by newlines)
+          const messages = this.buffer.split('\n');
+
+          // Keep the last incomplete message in buffer
+          this.buffer = messages.pop() || '';
+
+          // Process each complete message
+          messages.forEach((messageStr) => {
+            if (messageStr.trim()) {
+              try {
+                const message = deserializeMessage(messageStr);
+                this.onMessage(message);
+              } catch (error) {
+                console.error('Failed to parse message:', messageStr, error);
+              }
+            }
+          });
+        } catch (error) {
+          console.error('Error processing data:', error);
+        }
       });
 
       this.socket.on('close', () => {
@@ -58,5 +81,6 @@ export class ClientConnection {
       this.socket.destroy();
       this.socket = null;
     }
+    this.buffer = '';
   }
 }

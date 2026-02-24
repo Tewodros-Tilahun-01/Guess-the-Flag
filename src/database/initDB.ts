@@ -3,30 +3,46 @@ import * as SQLite from 'expo-sqlite';
 let db: SQLite.SQLiteDatabase | null = null;
 
 export const initDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
-  if (db) return db;
-
-  db = await SQLite.openDatabaseAsync('guesstheflag.db');
-
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS countries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      region TEXT,
-      difficulty INTEGER,
-      flag_file TEXT NOT NULL
-    );
-  `);
-
-  // Check if data exists
-  const result = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) as count FROM countries',
-  );
-
-  if (result && result.count === 0) {
-    await seedCountries(db);
+  if (db) {
+    console.log('Database already initialized');
+    return db;
   }
 
-  return db;
+  console.log('Initializing database...');
+  try {
+    db = await SQLite.openDatabaseAsync('guesstheflag.db');
+    console.log('Database opened successfully');
+
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS countries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        region TEXT,
+        difficulty INTEGER,
+        flag_file TEXT NOT NULL
+      );
+    `);
+    console.log('Table created/verified');
+
+    // Check if data exists
+    const result = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM countries',
+    );
+    console.log('Country count:', result?.count);
+
+    if (result && result.count === 0) {
+      console.log('Seeding countries...');
+      await seedCountries(db);
+      console.log('Countries seeded');
+    }
+
+    console.log('Database initialization complete');
+    return db;
+  } catch (error) {
+    console.error('Error initializing database:', error);
+    db = null;
+    throw error;
+  }
 };
 
 const seedCountries = async (database: SQLite.SQLiteDatabase) => {
@@ -173,5 +189,6 @@ const seedCountries = async (database: SQLite.SQLiteDatabase) => {
 
 export const getDatabase = (): SQLite.SQLiteDatabase => {
   if (!db) throw new Error('Database not initialized');
+
   return db;
 };

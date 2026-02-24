@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { initDatabase } from '../src/database/initDB';
 import { useGameStore } from '../src/store/gameStore';
 
 export default function MainMenu() {
@@ -10,7 +9,6 @@ export default function MainMenu() {
   const { setGameMode, setGameState, resetGame } = useGameStore();
 
   useEffect(() => {
-    initDatabase();
     resetGame();
   }, []);
 

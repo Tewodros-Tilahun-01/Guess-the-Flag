@@ -10,10 +10,11 @@ import {
   View,
 } from 'react-native';
 import { useGameStore } from '../src/store/gameStore';
+import { generatePlayerId } from '../src/utils/generateId';
 
 export default function HostSetup() {
   const router = useRouter();
-  const { setPlayerName, setGameConfig } = useGameStore();
+  const { setPlayerName, setGameConfig, setIsHost } = useGameStore();
   const [name, setName] = useState('Host');
   const [questionsCount, setQuestionsCount] = useState('10');
   const [timePerQuestion, setTimePerQuestion] = useState('30');
@@ -24,11 +25,21 @@ export default function HostSetup() {
       return;
     }
 
+    // Generate unique player ID
+    const playerId = generatePlayerId();
+
+    // Set player info and game config
     setPlayerName(name);
+    setIsHost(true);
+
+    // Store player ID in game store
+    useGameStore.setState({ playerId });
+
     setGameConfig({
       questionsCount: parseInt(questionsCount) || 10,
       timePerQuestion: parseInt(timePerQuestion) || 30,
     });
+
     router.push('/lobby' as any);
   };
 

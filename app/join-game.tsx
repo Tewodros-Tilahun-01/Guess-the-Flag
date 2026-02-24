@@ -9,10 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ClientConnection } from '../src/multiplayer/ClientConnection';
 import { useGameStore } from '../src/store/gameStore';
-
-let clientConnection: ClientConnection | null = null;
+import { setMultiplayerConnection } from '../src/utils/connectionManager';
+import { generatePlayerId } from '../src/utils/generateId';
+import { createMultiplayerConnection } from '../src/utils/multiplayerConnection';
 
 export default function JoinGame() {
   const router = useRouter();
@@ -26,34 +26,8 @@ export default function JoinGame() {
   } = useGameStore();
   const [name, setName] = useState('Player');
   const [connecting, setConnecting] = useState(false);
-  const [manualIp, setManualIp] = useState('10.44.30.219');
+  const [manualIp, setManualIp] = useState('10.23.28.205');
   const [manualPort, setManualPort] = useState('8080');
-
-  // COMMENTED OUT FOR TESTING - Use manual IP entry instead
-  /*
-  const [discoveredHosts, setDiscoveredHosts] = useState<DiscoveredHost[]>([]);
-  const [discoveryService] = useState(
-    () => new HostDiscoveryService(setDiscoveredHosts),
-  );
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Start discovering hosts
-    try {
-      discoveryService.startDiscovery(8081);
-      console.log('Discovery service started');
-    } catch (error) {
-      console.error('Failed to start discovery:', error);
-      setDiscoveryError(
-        'Failed to start auto-discovery. Please check your network connection.',
-      );
-    }
-
-    return () => {
-      discoveryService.stopDiscovery();
-    };
-  }, []);
-  */
 
   const handleManualConnect = async () => {
     if (!name.trim()) {
@@ -75,54 +49,31 @@ export default function JoinGame() {
     await connectToHost(manualIp.trim(), portNum);
   };
 
-  // COMMENTED OUT FOR TESTING
-  /*
-  const handleJoinHost = async (host: DiscoveredHost) => {
-    if (!name.trim()) {
-      Alert.alert('Error', 'Please enter your name');
-      return;
-    }
-
-    await connectToHost(host.address, host.port);
-  };
-  */
-
   const connectToHost = async (ip: string, portNum: number) => {
     setConnecting(true);
-    const playerId = `player_${Date.now()}`;
+
+    // Generate unique player ID
+    const playerId = generatePlayerId();
+
     setPlayerName(name);
 
     // Store the player ID in the game store
     useGameStore.setState({ playerId });
 
-    clientConnection = new ClientConnection((message) => {
-      switch (message.type) {
-        case 'PLAYER_LIST_UPDATE':
-          setPlayers(message.payload.players);
-          break;
-        case 'GAME_CONFIG':
-          setGameConfig(message.payload);
-          break;
-        case 'GAME_START':
-          setGameState('playing');
-          router.push('/game' as any);
-          break;
-        case 'NEW_QUESTION':
-          setCurrentQuestion(message.payload);
-          break;
-        case 'TIME_UPDATE':
-          setTimeRemaining(message.payload.timeRemaining);
-          break;
-        case 'GAME_END':
-          setGameState('ended');
-          router.push('/result' as any);
-          break;
-      }
-    });
+    // Use shared connection utility
+    const connection = createMultiplayerConnection(
+      router,
+      setPlayers,
+      setGameConfig,
+      setGameState,
+      setCurrentQuestion,
+      setTimeRemaining,
+    );
 
     try {
-      await clientConnection.connect(ip, portNum, playerId, name);
-      // discoveryService.stopDiscovery(); // COMMENTED OUT FOR TESTING
+      await connection.connect(ip, portNum, playerId, name);
+      // Set global connection reference for game screen
+      setMultiplayerConnection(connection);
       router.push('/lobby' as any);
     } catch (error) {
       Alert.alert('Connection Failed', 'Could not connect to host');
@@ -287,8 +238,6 @@ export default function JoinGame() {
     </LinearGradient>
   );
 }
-
-export { clientConnection };
 
 const styles = StyleSheet.create({
   container: {
