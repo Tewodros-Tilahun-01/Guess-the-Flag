@@ -1,9 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
-  FlatList,
   StyleSheet,
   Text,
   TextInput,
@@ -11,10 +10,6 @@ import {
   View,
 } from 'react-native';
 import { ClientConnection } from '../src/multiplayer/ClientConnection';
-import {
-  DiscoveredHost,
-  HostDiscoveryService,
-} from '../src/multiplayer/HostDiscovery';
 import { useGameStore } from '../src/store/gameStore';
 
 let clientConnection: ClientConnection | null = null;
@@ -31,6 +26,11 @@ export default function JoinGame() {
   } = useGameStore();
   const [name, setName] = useState('Player');
   const [connecting, setConnecting] = useState(false);
+  const [manualIp, setManualIp] = useState('10.44.30.219');
+  const [manualPort, setManualPort] = useState('8080');
+
+  // COMMENTED OUT FOR TESTING - Use manual IP entry instead
+  /*
   const [discoveredHosts, setDiscoveredHosts] = useState<DiscoveredHost[]>([]);
   const [discoveryService] = useState(
     () => new HostDiscoveryService(setDiscoveredHosts),
@@ -53,7 +53,30 @@ export default function JoinGame() {
       discoveryService.stopDiscovery();
     };
   }, []);
+  */
 
+  const handleManualConnect = async () => {
+    if (!name.trim()) {
+      Alert.alert('Error', 'Please enter your name');
+      return;
+    }
+
+    if (!manualIp.trim()) {
+      Alert.alert('Error', 'Please enter the host IP address');
+      return;
+    }
+
+    const portNum = parseInt(manualPort, 10);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      Alert.alert('Error', 'Please enter a valid port number (1-65535)');
+      return;
+    }
+
+    await connectToHost(manualIp.trim(), portNum);
+  };
+
+  // COMMENTED OUT FOR TESTING
+  /*
   const handleJoinHost = async (host: DiscoveredHost) => {
     if (!name.trim()) {
       Alert.alert('Error', 'Please enter your name');
@@ -62,11 +85,15 @@ export default function JoinGame() {
 
     await connectToHost(host.address, host.port);
   };
+  */
 
   const connectToHost = async (ip: string, portNum: number) => {
     setConnecting(true);
     const playerId = `player_${Date.now()}`;
     setPlayerName(name);
+
+    // Store the player ID in the game store
+    useGameStore.setState({ playerId });
 
     clientConnection = new ClientConnection((message) => {
       switch (message.type) {
@@ -95,7 +122,7 @@ export default function JoinGame() {
 
     try {
       await clientConnection.connect(ip, portNum, playerId, name);
-      discoveryService.stopDiscovery();
+      // discoveryService.stopDiscovery(); // COMMENTED OUT FOR TESTING
       router.push('/lobby' as any);
     } catch (error) {
       Alert.alert('Connection Failed', 'Could not connect to host');
@@ -129,15 +156,71 @@ export default function JoinGame() {
           />
         </View>
 
+        {/* Manual IP Entry */}
+        <View style={styles.manualSection}>
+          <Text style={styles.sectionTitle}>🔗 Connect Manually</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Host IP Address</Text>
+            <TextInput
+              value={manualIp}
+              onChangeText={setManualIp}
+              style={styles.input}
+              placeholder="e.g., 192.168.1.100"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="numeric"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Port</Text>
+            <TextInput
+              value={manualPort}
+              onChangeText={setManualPort}
+              style={styles.input}
+              placeholder="8080"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="numeric"
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={handleManualConnect}
+            disabled={connecting}
+            style={styles.connectButton}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={
+                connecting ? ['#9CA3AF', '#6B7280'] : ['#10B981', '#059669']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.connectButtonGradient}
+            >
+              <Text style={styles.connectButtonText}>
+                {connecting ? '⏳ Connecting...' : '🚀 Connect to Game'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        {/* COMMENTED OUT FOR TESTING - Auto-discovery section */}
+        {/*
         {/* Discovery Error */}
+        {/*
         {discoveryError && (
           <View style={styles.errorCard}>
             <Text style={styles.errorIcon}>⚠️</Text>
             <Text style={styles.errorText}>{discoveryError}</Text>
           </View>
         )}
+        */}
 
         {/* Discovered Hosts List */}
+        {/*
         <View style={styles.hostsSection}>
           <View style={styles.hostsSectionHeader}>
             <Text style={styles.hostsTitle}>
@@ -199,6 +282,7 @@ export default function JoinGame() {
             />
           )}
         </View>
+        */}
       </View>
     </LinearGradient>
   );
@@ -231,6 +315,18 @@ const styles = StyleSheet.create({
   nameSection: {
     marginBottom: 24,
   },
+  manualSection: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
   label: {
     fontSize: 16,
     fontWeight: '600',
@@ -250,6 +346,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+  },
+  connectButton: {
+    marginTop: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  connectButtonGradient: {
+    paddingHorizontal: 32,
+    paddingVertical: 20,
+  },
+  connectButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   errorCard: {
     flexDirection: 'row',

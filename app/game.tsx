@@ -22,6 +22,7 @@ export default function Game() {
   const {
     gameMode,
     isHost,
+    playerId,
     playerName,
     gameConfig,
     currentQuestion,
@@ -97,11 +98,17 @@ export default function Game() {
 
     addAnswer(answerObj);
 
-    if (gameMode === 'multiplayer' && !isHost && clientConnection) {
+    if (gameMode === 'multiplayer' && !isHost && clientConnection && playerId) {
+      console.log(
+        'Submitting answer to host - Player ID:',
+        playerId,
+        'Answer:',
+        answer,
+      );
       clientConnection.send({
         type: 'SUBMIT_ANSWER',
         payload: {
-          playerId: 'player_id',
+          playerId: playerId,
           playerName,
           answer,
         },

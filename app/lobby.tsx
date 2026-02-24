@@ -23,6 +23,7 @@ export default function Lobby() {
   const {
     isHost,
     playerName,
+    playerId,
     players,
     gameConfig,
     setPlayers,
@@ -108,6 +109,8 @@ export default function Lobby() {
       setPlayers([hostPlayer]);
 
       // Try to get local IP and start auto-discovery
+      // COMMENTED OUT FOR TESTING - Use manual IP entry instead
+      /*
       try {
         const localIp = await getLocalIpAddress();
         console.log('Local IP retrieved:', localIp);
@@ -142,6 +145,18 @@ export default function Lobby() {
           `Auto-discovery could not be started.\n\nReason: ${errorMessage}\n\nYour game is still running! Share your IP address (${serverAddress}) with players so they can join manually.`,
         );
       }
+      */
+
+      // Get local IP for display
+      try {
+        const localIp = await getLocalIpAddress();
+        console.log('Local IP retrieved:', localIp);
+        if (localIp && localIp !== '0.0.0.0') {
+          setServerAddress(`${localIp}:8080`);
+        }
+      } catch (error) {
+        console.error('Error getting local IP:', error);
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -166,11 +181,17 @@ export default function Lobby() {
     const newReadyState = !isReady;
     setIsReady(newReadyState);
 
-    if (!isHost && clientConnection) {
+    if (!isHost && clientConnection && playerId) {
+      console.log(
+        'Sending ready status to host:',
+        newReadyState,
+        'Player ID:',
+        playerId,
+      );
       clientConnection.send({
         type: 'PLAYER_READY',
         payload: {
-          playerId: `player_${Date.now()}`,
+          playerId: playerId,
           isReady: newReadyState,
         },
       });
