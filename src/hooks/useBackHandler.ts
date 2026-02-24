@@ -1,6 +1,6 @@
 import { getMultiplayerConnection } from '@/src/utils/connectionManager';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Alert, BackHandler } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 
@@ -8,17 +8,7 @@ export const useBackHandler = () => {
   const router = useRouter();
   const { gameMode, isHost, resetGame } = useGameStore();
 
-  useEffect(() => {
-    if (gameMode === 'multiplayer') {
-      const backHandler = BackHandler.addEventListener(
-        'hardwareBackPress',
-        handleBackPress,
-      );
-      return () => backHandler.remove();
-    }
-  }, [gameMode, isHost]);
-
-  const handleBackPress = () => {
+  const handleBackPress = useCallback(() => {
     if (gameMode === 'multiplayer') {
       const message = isHost
         ? 'Do you want to end this game? All players will be disconnected.'
@@ -45,5 +35,15 @@ export const useBackHandler = () => {
       return true; // Prevent default back behavior
     }
     return false; // Allow default back behavior for single player
-  };
+  }, [gameMode, isHost, resetGame, router]);
+
+  useEffect(() => {
+    if (gameMode === 'multiplayer') {
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        handleBackPress,
+      );
+      return () => backHandler.remove();
+    }
+  }, [gameMode, handleBackPress]);
 };
