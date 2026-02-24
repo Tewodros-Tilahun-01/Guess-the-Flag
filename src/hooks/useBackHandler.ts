@@ -28,7 +28,8 @@ export const useBackHandler = () => {
               connection.disconnect();
             }
             resetGame();
-            router.dismissTo('/multiplayer-menu' as any);
+            router.dismissAll();
+            router.push('/');
           },
         },
       ]);

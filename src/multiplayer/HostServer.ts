@@ -266,6 +266,7 @@ export class HostServer {
       }
 
       // Notify all clients that server is stopping
+
       this.broadcast({
         type: 'SERVER_STOPPED',
         payload: { reason: 'Host ended the game' },

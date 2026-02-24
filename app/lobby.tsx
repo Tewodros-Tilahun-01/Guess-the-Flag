@@ -34,6 +34,7 @@ export default function Lobby() {
     setCurrentQuestion,
     setGameConfig,
     setTimeRemaining,
+    resetGame,
   } = useGameStore();
   const [isReady, setIsReady] = useState(false);
   const [serverAddress, setServerAddress] = useState('');
@@ -48,10 +49,25 @@ export default function Lobby() {
 
     return () => {
       if (isHost && hostServer) {
-        hostServer.stop();
-        hostServer = null;
+        console.log('[Lobby] Stopping host server');
+        // hostServer.stop() is async, handle it properly
+        hostServer
+          .stop()
+          .then(() => {
+            hostServer = null;
+            resetGame();
+          })
+          .catch((error) => {
+            hostServer = null;
+            resetGame();
+          });
+      } else {
+        // If not host, reset immediately
+        resetGame();
       }
+
       if (connection) {
+        console.log('[Lobby] Disconnecting connection');
         connection.disconnect();
       }
     };

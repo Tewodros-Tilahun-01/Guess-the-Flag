@@ -58,7 +58,7 @@ const handleServerStopped = (router: any, reason: string) => {
           text: 'Back to Menu',
           onPress: () => {
             resetGame();
-            router.dismissTo('/multiplayer-menu' as any);
+            router.dismissTo('/' as any);
           },
         },
       ],
