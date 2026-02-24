@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   FlatList,
   Image,
@@ -13,7 +13,6 @@ import { getFlagUrlMD } from '../src/utils/flagUrl';
 
 export default function Result() {
   const router = useRouter();
-  const navigation = useNavigation();
 
   const { answers, playerName, resetGame } = useGameStore();
 
@@ -27,7 +26,6 @@ export default function Result() {
     resetGame();
 
     router.dismissAll();
-    // Replace the current screen with the new one (e.g., the dashboard)
     router.replace('/');
   };
 

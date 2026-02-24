@@ -1,4 +1,6 @@
+import { Alert } from 'react-native';
 import { ClientConnection } from '../multiplayer/ClientConnection';
+import { useGameStore } from '../store/gameStore';
 
 // Shared connection logic for both host and players
 export const createMultiplayerConnection = (
@@ -31,6 +33,32 @@ export const createMultiplayerConnection = (
         setGameState('ended');
         router.push('/result' as any);
         break;
+      case 'SERVER_STOPPED':
+        handleServerStopped(router, message.payload.reason);
+        break;
     }
   });
+};
+
+const handleServerStopped = (router: any, reason: string) => {
+  // Check if this player is the host
+  const { isHost, resetGame } = useGameStore.getState();
+
+  // Only show alert to non-host players
+  if (!isHost) {
+    Alert.alert(
+      'Game Ended',
+      reason || 'The host has ended the game.',
+      [
+        {
+          text: 'Back to Menu',
+          onPress: () => {
+            resetGame();
+            router.replace('/' as any);
+          },
+        },
+      ],
+      { cancelable: false },
+    );
+  }
 };

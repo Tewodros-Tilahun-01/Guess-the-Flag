@@ -100,6 +100,14 @@ export class HostServer {
       `Player joined: ${player.name} (${player.isHost ? 'Host' : 'Player'})`,
     );
 
+    // Send game config to the newly joined player
+    const configMessage: GameMessage = {
+      type: 'GAME_CONFIG',
+      payload: this.gameConfig,
+    };
+    socket.write(serializeMessage(configMessage));
+
+    // Broadcast updated player list to everyone
     this.broadcastPlayerList();
   }
 
@@ -243,6 +251,12 @@ export class HostServer {
         clearInterval(this.timer);
         this.timer = null;
       }
+
+      // Notify all clients that server is stopping
+      this.broadcast({
+        type: 'SERVER_STOPPED',
+        payload: { reason: 'Host ended the game' },
+      });
 
       this.clients.forEach((socket) => {
         try {

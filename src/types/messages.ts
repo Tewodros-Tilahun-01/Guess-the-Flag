@@ -10,7 +10,8 @@ export type MessageType =
   | 'SUBMIT_ANSWER'
   | 'NEXT_QUESTION'
   | 'GAME_END'
-  | 'TIME_UPDATE';
+  | 'TIME_UPDATE'
+  | 'SERVER_STOPPED';
 
 export interface BaseMessage {
   type: MessageType;
@@ -80,6 +81,13 @@ export interface TimeUpdateMessage extends BaseMessage {
   };
 }
 
+export interface ServerStoppedMessage extends BaseMessage {
+  type: 'SERVER_STOPPED';
+  payload: {
+    reason: string;
+  };
+}
+
 export type GameMessage =
   | JoinGameMessage
   | PlayerListUpdateMessage
@@ -90,4 +98,5 @@ export type GameMessage =
   | SubmitAnswerMessage
   | NextQuestionMessage
   | GameEndMessage
-  | TimeUpdateMessage;
+  | TimeUpdateMessage
+  | ServerStoppedMessage;
