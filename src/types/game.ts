@@ -67,4 +67,5 @@ export interface GameStore {
   setTimeRemaining: (time: number) => void;
   setPlayerLeftNotification: (playerName: string | null) => void;
   resetGame: () => void;
+  resetGameState: () => void; // Partial reset for play again
 }

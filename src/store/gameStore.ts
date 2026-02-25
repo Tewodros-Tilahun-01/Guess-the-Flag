@@ -54,4 +54,15 @@ export const useGameStore = create<GameStore>((set) => ({
     set({ playerLeftNotification: playerName }),
 
   resetGame: () => set(initialState),
+
+  // Partial reset - keeps connection and player info for "Play Again"
+  resetGameState: () =>
+    set({
+      gameState: 'lobby',
+      currentQuestion: null,
+      currentQuestionIndex: 0,
+      answers: [],
+      timeRemaining: 0,
+      playerLeftNotification: null,
+    }),
 }));

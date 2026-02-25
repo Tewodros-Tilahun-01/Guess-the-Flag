@@ -14,13 +14,18 @@ import { generatePlayerId } from '../src/utils/generateId';
 
 export default function HostSetup() {
   const router = useRouter();
-  const { setPlayerName, setGameConfig, setIsHost } = useGameStore();
+  const { setPlayerName, setGameConfig, setIsHost, gameConfig } =
+    useGameStore();
   const [name, setName] = useState('Host');
-  const [questionsCount, setQuestionsCount] = useState('10');
-  const [timePerQuestion, setTimePerQuestion] = useState('30');
-  const [difficultyLevels, setDifficultyLevels] = useState<number[]>([
-    1, 2, 3, 4, 5,
-  ]); // All selected by default
+  const [questionsCount, setQuestionsCount] = useState(
+    gameConfig.questionsCount,
+  );
+  const [timePerQuestion, setTimePerQuestion] = useState(
+    gameConfig.timePerQuestion,
+  );
+  const [difficultyLevels, setDifficultyLevels] = useState<number[]>(
+    gameConfig.difficultyLevels || [1, 2, 3, 4, 5],
+  ); // All selected by default
 
   const toggleDifficulty = (level: number) => {
     if (difficultyLevels.includes(level)) {
@@ -55,8 +60,8 @@ export default function HostSetup() {
     useGameStore.setState({ playerId });
 
     setGameConfig({
-      questionsCount: parseInt(questionsCount) || 10,
-      timePerQuestion: parseInt(timePerQuestion) || 30,
+      questionsCount: questionsCount || 10,
+      timePerQuestion: timePerQuestion || 30,
       difficultyLevels: difficultyLevels,
     });
 
@@ -95,7 +100,7 @@ export default function HostSetup() {
           <View style={styles.section}>
             <Text style={styles.label}>Number of Questions</Text>
             <View style={styles.optionsRow}>
-              {['5', '10', '15', '20'].map((count) => (
+              {[5, 10, 15, 20].map((count) => (
                 <TouchableOpacity
                   key={count}
                   onPress={() => setQuestionsCount(count)}
@@ -121,7 +126,7 @@ export default function HostSetup() {
           <View style={styles.section}>
             <Text style={styles.label}>Time per Question (seconds)</Text>
             <View style={styles.optionsRow}>
-              {['15', '30', '45', '60'].map((time) => (
+              {[15, 30, 45, 60].map((time) => (
                 <TouchableOpacity
                   key={time}
                   onPress={() => setTimePerQuestion(time)}

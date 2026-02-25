@@ -36,6 +36,7 @@ export default function Lobby() {
     setCurrentQuestion,
     setGameConfig,
     setTimeRemaining,
+    resetGameState,
   } = useGameStore();
   const [isReady, setIsReady] = useState(false);
   const [serverAddress, setServerAddress] = useState('');
@@ -56,10 +57,14 @@ export default function Lobby() {
           .stop()
           .then(() => {
             hostServer = null;
+            resetGameState();
           })
           .catch((error) => {
             hostServer = null;
+            resetGameState();
           });
+      } else {
+        resetGameState();
       }
 
       if (connection) {

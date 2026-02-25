@@ -14,7 +14,8 @@ import { getFlagUrlMD } from '../src/utils/flagUrl';
 export default function Result() {
   const router = useRouter();
 
-  const { answers, playerName, resetGame } = useGameStore();
+  const { answers, playerName, gameMode, resetGame, resetGameState } =
+    useGameStore();
 
   const playerAnswers = answers.filter((a) => a.playerName === playerName);
   const correctCount = playerAnswers.filter((a) => a.isCorrect).length;
@@ -23,8 +24,15 @@ export default function Result() {
     totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
 
   const handlePlayAgain = () => {
-    resetGame();
+    // Partial reset - keeps connection for multiplayer
+    resetGameState();
+    router.back();
+    router.back(); // Go back to lobby
+  };
 
+  const handleDifferentGame = () => {
+    // Full reset
+    resetGame();
     router.dismissAll();
     router.replace('/');
   };
@@ -144,15 +152,37 @@ export default function Result() {
           showsVerticalScrollIndicator={false}
         />
 
-        {/* Play Again Button */}
+        {/* Action Buttons */}
         <View style={styles.actions}>
+          {gameMode === 'multiplayer' && (
+            <TouchableOpacity
+              onPress={handlePlayAgain}
+              style={styles.playAgainButton}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#34D399', '#10B981']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.playAgainButtonGradient}
+              >
+                <Text style={styles.playAgainButtonText}>🔄 Play Again</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
-            onPress={handlePlayAgain}
-            style={styles.playAgainButton}
+            onPress={handleDifferentGame}
+            style={[
+              styles.differentGameButton,
+              gameMode === 'multiplayer' && styles.differentGameButtonSpacing,
+            ]}
             activeOpacity={0.8}
           >
-            <View style={styles.playAgainButtonContent}>
-              <Text style={styles.playAgainButtonText}>🏠 Back to Menu</Text>
+            <View style={styles.differentGameButtonContent}>
+              <Text style={styles.differentGameButtonText}>
+                🏠 Different Game
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -309,6 +339,25 @@ const styles = StyleSheet.create({
   },
   playAgainButton: {
     borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  playAgainButtonGradient: {
+    paddingHorizontal: 32,
+    paddingVertical: 20,
+  },
+  playAgainButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  differentGameButton: {
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
     shadowColor: '#000',
@@ -317,11 +366,14 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
   },
-  playAgainButtonContent: {
+  differentGameButtonSpacing: {
+    marginTop: 12,
+  },
+  differentGameButtonContent: {
     paddingHorizontal: 32,
     paddingVertical: 20,
   },
-  playAgainButtonText: {
+  differentGameButtonText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#7C3AED',

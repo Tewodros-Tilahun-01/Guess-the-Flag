@@ -26,6 +26,12 @@ export const createMultiplayerConnection = (
         break;
       case 'NEW_QUESTION':
         setCurrentQuestion(message.payload);
+        // Update the question index when receiving new question
+        if (message.payload && message.payload.questionIndex !== undefined) {
+          useGameStore
+            .getState()
+            .setCurrentQuestionIndex(message.payload.questionIndex);
+        }
         break;
       case 'TIME_UPDATE':
         setTimeRemaining(message.payload.timeRemaining);
