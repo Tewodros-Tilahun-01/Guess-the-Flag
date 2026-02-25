@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { ClientConnection } from '../src/multiplayer/ClientConnection';
 import { HostServer } from '../src/multiplayer/HostServer';
 import { useGameStore } from '../src/store/gameStore';
@@ -39,6 +41,7 @@ export default function Lobby() {
   const [isReady, setIsReady] = useState(false);
   const [serverAddress, setServerAddress] = useState('');
   const [connection, setConnection] = useState<ClientConnection | null>(null);
+  const [showQRCode, setShowQRCode] = useState(false);
 
   useEffect(() => {
     if (isHost) {
@@ -161,6 +164,16 @@ export default function Lobby() {
 
   const canStartGame = isHost && players.every((p) => p.isReady);
 
+  const getQRData = () => {
+    if (!serverAddress) return '';
+    const [ip, port] = serverAddress.split(':');
+    return JSON.stringify({
+      ip,
+      port: port || '8080',
+      gameName: `${playerName}'s Game`,
+    });
+  };
+
   return (
     <LinearGradient
       colors={['#7C3AED', '#EC4899', '#EF4444']}
@@ -175,7 +188,7 @@ export default function Lobby() {
           <Text style={styles.subtitle}>Waiting for players to join...</Text>
         </View>
 
-        {/* Server Address */}
+        {/* Server Address with QR Code */}
         {isHost && serverAddress && (
           <View style={styles.serverCard}>
             <LinearGradient
@@ -184,14 +197,61 @@ export default function Lobby() {
               end={{ x: 1, y: 0 }}
               style={styles.serverCardGradient}
             >
-              <Text style={styles.serverLabel}>📡 Server Address</Text>
-              <Text style={styles.serverAddress}>{serverAddress}</Text>
-              <Text style={styles.serverHint}>
-                Share this with other players
-              </Text>
+              <View style={styles.serverHeader}>
+                <View style={styles.serverInfo}>
+                  <Text style={styles.serverLabel}>📡 Server Address</Text>
+                  <Text style={styles.serverAddress}>{serverAddress}</Text>
+                  <Text style={styles.serverHint}>
+                    Share this with other players
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowQRCode(true)}
+                  style={styles.qrButton}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.qrButtonText}>📱 Show QR</Text>
+                </TouchableOpacity>
+              </View>
             </LinearGradient>
           </View>
         )}
+
+        {/* QR Code Modal */}
+        <Modal
+          visible={showQRCode}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowQRCode(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowQRCode(false)}
+          >
+            <View style={styles.qrModal}>
+              <LinearGradient
+                colors={['#FFFFFF', '#F9FAFB']}
+                style={styles.qrModalContent}
+              >
+                <Text style={styles.qrModalTitle}>Scan to Join</Text>
+                <Text style={styles.qrModalSubtitle}>
+                  Players can scan this QR code to join
+                </Text>
+                <View style={styles.qrCodeContainer}>
+                  <QRCode value={getQRData()} size={220} />
+                </View>
+                <Text style={styles.qrModalAddress}>{serverAddress}</Text>
+                <TouchableOpacity
+                  onPress={() => setShowQRCode(false)}
+                  style={styles.qrCloseButton}
+                >
+                  <Text style={styles.qrCloseButtonText}>Close</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         {/* Game Settings */}
         <View style={styles.settingsCard}>
@@ -371,6 +431,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 16,
   },
+  serverHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  serverInfo: {
+    flex: 1,
+  },
   serverLabel: {
     fontSize: 14,
     fontWeight: '600',
@@ -386,6 +454,80 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     marginTop: 4,
+  },
+  qrButton: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginLeft: 12,
+  },
+  qrButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qrModal: {
+    width: '85%',
+    maxWidth: 350,
+  },
+  qrModalContent: {
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  qrModalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  qrModalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  qrCodeContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  qrModalAddress: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#7C3AED',
+    marginBottom: 20,
+  },
+  qrCloseButton: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: '100%',
+  },
+  qrCloseButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   settingsCard: {
     marginBottom: 24,

@@ -1,8 +1,10 @@
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
+  Modal,
   StyleSheet,
   Text,
   TextInput,
@@ -26,8 +28,49 @@ export default function JoinGame() {
   } = useGameStore();
   const [name, setName] = useState('Player');
   const [connecting, setConnecting] = useState(false);
-  const [manualIp, setManualIp] = useState('10.23.28.205');
+  const [manualIp, setManualIp] = useState('');
   const [manualPort, setManualPort] = useState('8080');
+  const [showScanner, setShowScanner] = useState(false);
+  const [mode, setMode] = useState<'qr' | 'manual'>('qr'); // 'qr' or 'manual'
+  const [permission, requestPermission] = useCameraPermissions();
+
+  const handleQRScan = async () => {
+    if (!permission) {
+      return;
+    }
+
+    if (!permission.granted) {
+      const { granted } = await requestPermission();
+      if (!granted) {
+        Alert.alert(
+          'Camera Permission',
+          'Camera permission is required to scan QR codes',
+        );
+        return;
+      }
+    }
+
+    setShowScanner(true);
+  };
+
+  const handleBarCodeScanned = ({ data }: { data: string }) => {
+    try {
+      const qrData = JSON.parse(data);
+      if (qrData.ip && qrData.port) {
+        setShowScanner(false);
+        setManualIp(qrData.ip);
+        setManualPort(qrData.port);
+        // Auto-connect after scanning
+        setTimeout(() => {
+          connectToHost(qrData.ip, parseInt(qrData.port, 10));
+        }, 300);
+      } else {
+        Alert.alert('Invalid QR Code', 'This QR code is not valid');
+      }
+    } catch (error) {
+      Alert.alert('Invalid QR Code', 'Could not read QR code data');
+    }
+  };
 
   const handleManualConnect = async () => {
     if (!name.trim()) {
@@ -93,149 +136,179 @@ export default function JoinGame() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Join Game</Text>
-          <Text style={styles.subtitle}>Select a game to join</Text>
+          <Text style={styles.subtitle}>Choose how to connect</Text>
         </View>
 
-        {/* Name Input */}
-        <View style={styles.nameSection}>
-          <Text style={styles.label}>Your Name</Text>
+        {/* Name Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>👤 Your Name</Text>
           <TextInput
             value={name}
             onChangeText={setName}
-            style={styles.input}
+            style={styles.cardInput}
             placeholder="Enter your name"
             placeholderTextColor="#9CA3AF"
           />
         </View>
 
-        {/* Manual IP Entry */}
-        <View style={styles.manualSection}>
-          <Text style={styles.sectionTitle}>🔗 Connect Manually</Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Host IP Address</Text>
-            <TextInput
-              value={manualIp}
-              onChangeText={setManualIp}
-              style={styles.input}
-              placeholder="e.g., 192.168.1.100"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Port</Text>
-            <TextInput
-              value={manualPort}
-              onChangeText={setManualPort}
-              style={styles.input}
-              placeholder="8080"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
-            />
-          </View>
+        {/* Tab Selector */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            onPress={() => setMode('qr')}
+            style={[styles.tab, mode === 'qr' && styles.tabActive]}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[styles.tabIcon, mode === 'qr' && styles.tabIconActive]}
+            >
+              📷
+            </Text>
+            <Text
+              style={[styles.tabText, mode === 'qr' && styles.tabTextActive]}
+            >
+              Scan QR
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={handleManualConnect}
-            disabled={connecting}
-            style={styles.connectButton}
-            activeOpacity={0.8}
+            onPress={() => setMode('manual')}
+            style={[styles.tab, mode === 'manual' && styles.tabActive]}
+            activeOpacity={0.7}
           >
-            <LinearGradient
-              colors={
-                connecting ? ['#9CA3AF', '#6B7280'] : ['#10B981', '#059669']
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.connectButtonGradient}
+            <Text
+              style={[
+                styles.tabIcon,
+                mode === 'manual' && styles.tabIconActive,
+              ]}
             >
-              <Text style={styles.connectButtonText}>
-                {connecting ? '⏳ Connecting...' : '🚀 Connect to Game'}
-              </Text>
-            </LinearGradient>
+              ⌨️
+            </Text>
+            <Text
+              style={[
+                styles.tabText,
+                mode === 'manual' && styles.tabTextActive,
+              ]}
+            >
+              Enter IP
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* COMMENTED OUT FOR TESTING - Auto-discovery section */}
-        {/*
-        {/* Discovery Error */}
-        {/*
-        {discoveryError && (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorText}>{discoveryError}</Text>
-          </View>
-        )}
-        */}
-
-        {/* Discovered Hosts List */}
-        {/*
-        <View style={styles.hostsSection}>
-          <View style={styles.hostsSectionHeader}>
-            <Text style={styles.hostsTitle}>
-              {discoveredHosts.length > 0
-                ? '🔍 Available Games'
-                : '🔍 Searching for games...'}
-            </Text>
-          </View>
-
-          {discoveredHosts.length === 0 && !discoveryError ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>
-                No games found on your network
+        {/* Content Card */}
+        <View style={styles.contentCard}>
+          {mode === 'qr' ? (
+            <View style={styles.qrContent}>
+              <Text style={styles.contentTitle}>Scan QR Code</Text>
+              <Text style={styles.contentDescription}>
+                Ask the host to show their QR code, then tap the button below to
+                scan
               </Text>
-              <Text style={styles.emptyStateHint}>
-                Make sure you're on the same WiFi network as the host
-              </Text>
+              <TouchableOpacity
+                onPress={handleQRScan}
+                style={styles.primaryButton}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.primaryButtonGradient}
+                >
+                  <Text style={styles.primaryButtonText}>Open Camera</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           ) : (
-            <FlatList
-              data={discoveredHosts}
-              keyExtractor={(item) => `${item.address}:${item.port}`}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  onPress={() => handleJoinHost(item)}
-                  disabled={connecting}
-                  style={styles.hostCard}
-                  activeOpacity={0.7}
+            <View style={styles.manualContent}>
+              <Text style={styles.contentTitle}>Enter Connection Info</Text>
+              <Text style={styles.contentDescription}>
+                Get the IP address and port from the host
+              </Text>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>IP Address</Text>
+                <TextInput
+                  value={manualIp}
+                  onChangeText={setManualIp}
+                  style={styles.formInput}
+                  placeholder="192.168.1.100"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Port</Text>
+                <TextInput
+                  value={manualPort}
+                  onChangeText={setManualPort}
+                  style={styles.formInput}
+                  placeholder="8080"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={handleManualConnect}
+                disabled={connecting}
+                style={styles.primaryButton}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={
+                    connecting ? ['#9CA3AF', '#6B7280'] : ['#10B981', '#059669']
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.primaryButtonGradient}
                 >
-                  <LinearGradient
-                    colors={['#FFFFFF', '#FEF3C7']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.hostCardGradient}
-                  >
-                    <View style={styles.hostCardContent}>
-                      <View style={styles.hostCardLeft}>
-                        <Text style={styles.hostCardEmoji}>🎮</Text>
-                        <View>
-                          <Text style={styles.hostCardName}>{item.name}</Text>
-                          <Text style={styles.hostCardAddress}>
-                            {item.address}:{item.port}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.hostCardRight}>
-                        <View style={styles.playerCountBadge}>
-                          <Text style={styles.playerCountText}>
-                            👥 {item.playerCount}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-              style={styles.hostsList}
-              showsVerticalScrollIndicator={false}
-            />
+                  <Text style={styles.primaryButtonText}>
+                    {connecting ? 'Connecting...' : 'Connect'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
-        */}
       </View>
+
+      {/* QR Scanner Modal */}
+      <Modal
+        visible={showScanner}
+        animationType="slide"
+        onRequestClose={() => setShowScanner(false)}
+      >
+        <View style={styles.scannerContainer}>
+          <CameraView
+            style={styles.camera}
+            facing="back"
+            onBarcodeScanned={handleBarCodeScanned}
+            barcodeScannerSettings={{
+              barcodeTypes: ['qr'],
+            }}
+          />
+          <View style={styles.scannerOverlay}>
+            <View style={styles.scannerHeader}>
+              <Text style={styles.scannerTitle}>Scan QR Code</Text>
+              <TouchableOpacity
+                onPress={() => setShowScanner(false)}
+                style={styles.scannerCloseButton}
+              >
+                <Text style={styles.scannerCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.scannerFrame}>
+              <View style={styles.scannerCorner} />
+            </View>
+            <Text style={styles.scannerHint}>
+              Point your camera at the QR code
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -246,179 +319,224 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 32,
-    paddingTop: 64,
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 32,
   },
   header: {
     marginBottom: 24,
   },
   title: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  nameSection: {
-    marginBottom: 24,
-  },
-  manualSection: {
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
-  input: {
-    borderRadius: 16,
+  card: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#111827',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  connectButton: {
-    marginTop: 8,
+  cardLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  cardInput: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    paddingVertical: 4,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 16,
-    overflow: 'hidden',
+    padding: 4,
+    marginBottom: 20,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  tabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tabIcon: {
+    fontSize: 20,
+    marginRight: 6,
+    opacity: 0.7,
+  },
+  tabIconActive: {
+    opacity: 1,
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  tabTextActive: {
+    color: '#F97316',
+  },
+  contentCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 16,
     elevation: 8,
   },
-  connectButtonGradient: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-  },
-  connectButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  errorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-  },
-  errorIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  hostsSection: {
-    flex: 1,
-  },
-  hostsSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  hostsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  emptyState: {
+  qrContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 48,
   },
-  emptyStateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  manualContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  iconCircleEmoji: {
+    fontSize: 40,
+  },
+  contentTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
     marginBottom: 8,
     textAlign: 'center',
   },
-  emptyStateHint: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+  contentDescription: {
+    fontSize: 15,
+    color: '#6B7280',
     textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+    paddingHorizontal: 10,
   },
-  hostsList: {
-    flex: 1,
+  formGroup: {
+    marginBottom: 16,
   },
-  hostCard: {
-    marginBottom: 12,
-    borderRadius: 16,
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#111827',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  primaryButton: {
+    borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 6,
   },
-  hostCardGradient: {
-    padding: 16,
+  primaryButtonGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    alignItems: 'center',
   },
-  hostCardContent: {
+  primaryButtonText: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  scannerContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  camera: {
+    flex: 1,
+  },
+  scannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  scannerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 20,
   },
-  hostCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  hostCardEmoji: {
-    fontSize: 32,
-    marginRight: 12,
-  },
-  hostCardName: {
-    fontSize: 18,
+  scannerTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
+    color: '#FFFFFF',
   },
-  hostCardAddress: {
-    fontSize: 12,
-    color: '#6B7280',
+  scannerCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  hostCardRight: {},
-  playerCountBadge: {
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  scannerCloseText: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
-  playerCountText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E40AF',
+  scannerFrame: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scannerCorner: {
+    width: 250,
+    height: 250,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    borderRadius: 24,
+  },
+  scannerHint: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 60,
   },
 });
