@@ -35,7 +35,6 @@ export const getRandomCountries = async (
     query += ' ORDER BY RANDOM() LIMIT ?';
     params.push(count);
 
-    console.log('Query:', query, 'Params:', params);
     const countries = await db.getAllAsync<Country>(query, params);
     console.log('Fetched countries:', countries.length);
     return countries;

@@ -22,7 +22,7 @@ export class HostServer {
     return new Promise((resolve, reject) => {
       console.log('Creating server...');
       this.server = TcpSocket.createServer((socket: any) => {
-        console.log('Client connected');
+        console.log('new Client connected');
 
         socket.on('data', (data: Buffer) => {
           const message = deserializeMessage(data.toString());
@@ -47,8 +47,6 @@ export class HostServer {
         reject(error);
         return;
       }
-
-      console.log('Server created, attempting to listen...');
 
       this.server.listen({ port, host: '0.0.0.0' }, () => {
         const address = this.server.address();

@@ -19,7 +19,7 @@ export class ClientConnection {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.socket = TcpSocket.createConnection({ host, port }, () => {
-        console.log('Connected to server');
+        // console.log('Connected to server');
 
         // Send join message
         const joinMessage: GameMessage = {
@@ -59,7 +59,7 @@ export class ClientConnection {
       });
 
       this.socket.on('close', () => {
-        console.log('Disconnected from server');
+        // console.log('Disconnected from server');
       });
 
       this.socket.on('error', (error: Error) => {

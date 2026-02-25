@@ -36,7 +36,6 @@ export default function Lobby() {
     setCurrentQuestion,
     setGameConfig,
     setTimeRemaining,
-    resetGame,
   } = useGameStore();
   const [isReady, setIsReady] = useState(false);
   const [serverAddress, setServerAddress] = useState('');
@@ -52,25 +51,18 @@ export default function Lobby() {
 
     return () => {
       if (isHost && hostServer) {
-        console.log('[Lobby] Stopping host server');
         // hostServer.stop() is async, handle it properly
         hostServer
           .stop()
           .then(() => {
             hostServer = null;
-            resetGame();
           })
           .catch((error) => {
             hostServer = null;
-            resetGame();
           });
-      } else {
-        // If not host, reset immediately
-        resetGame();
       }
 
       if (connection) {
-        console.log('[Lobby] Disconnecting connection');
         connection.disconnect();
       }
     };
@@ -81,7 +73,6 @@ export default function Lobby() {
       // Start server (no host player needed!)
       hostServer = new HostServer(gameConfig);
       const address = await hostServer.start(8080);
-      console.log('Server started:', address);
 
       // Get local IP
       const localIp = await getLocalIpAddress();
@@ -125,7 +116,6 @@ export default function Lobby() {
     setConnection(newConnection);
     setMultiplayerConnection(newConnection);
     setConnection(getMultiplayerConnection());
-    console.log('✅ Connected to server');
   };
 
   const handleReady = () => {

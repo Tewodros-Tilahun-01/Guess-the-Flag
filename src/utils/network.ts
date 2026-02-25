@@ -5,14 +5,13 @@ export const getLocalIpAddress = async (): Promise<string> => {
   try {
     // Try react-native-network-info first (works with both WiFi and cellular)
     const ip = await NetworkInfo.getIPV4Address();
-    console.log('NetworkInfo IP:', ip);
+
     if (ip && ip !== '0.0.0.0') {
       return ip;
     }
 
     // Fallback to NetInfo
     const state = await NetInfo.fetch();
-    console.log('Network state:', JSON.stringify(state, null, 2));
 
     // Get IP address from network state
     if (
