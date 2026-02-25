@@ -183,7 +183,10 @@ export class HostServer {
   }
 
   async startGame(): Promise<void> {
-    await this.gameEngine.generateQuestions(this.gameConfig.questionsCount);
+    await this.gameEngine.generateQuestions(
+      this.gameConfig.questionsCount,
+      this.gameConfig.difficultyLevels,
+    );
 
     this.broadcast({ type: 'GAME_START' });
 

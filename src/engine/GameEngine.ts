@@ -5,8 +5,11 @@ export class GameEngine {
   private questions: Country[] = [];
   private currentIndex: number = 0;
 
-  async generateQuestions(count: number): Promise<void> {
-    this.questions = await getRandomCountries(count);
+  async generateQuestions(
+    count: number,
+    difficultyLevels?: number[],
+  ): Promise<void> {
+    this.questions = await getRandomCountries(count, difficultyLevels);
     this.currentIndex = 0;
   }
 

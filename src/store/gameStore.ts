@@ -11,6 +11,7 @@ const initialState = {
   gameConfig: {
     questionsCount: 10,
     timePerQuestion: 30,
+    difficultyLevels: [1, 2, 3, 4, 5],
   },
   currentQuestion: null,
   currentQuestionIndex: 0,

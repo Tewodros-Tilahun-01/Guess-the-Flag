@@ -8,7 +8,10 @@ export const getAllCountries = async (): Promise<Country[]> => {
   return countries;
 };
 
-export const getRandomCountries = async (count: number): Promise<Country[]> => {
+export const getRandomCountries = async (
+  count: number,
+  difficultyLevels?: number[],
+): Promise<Country[]> => {
   try {
     await initDatabase(); // Ensure DB is initialized
     const db = getDatabase();
@@ -18,10 +21,22 @@ export const getRandomCountries = async (count: number): Promise<Country[]> => {
     }
 
     console.log('Fetching random countries, count:', count);
-    const countries = await db.getAllAsync<Country>(
-      'SELECT * FROM countries ORDER BY RANDOM() LIMIT ?',
-      [count],
-    );
+
+    let query = 'SELECT * FROM countries';
+    const params: any[] = [];
+
+    // Filter by difficulty levels if provided
+    if (difficultyLevels && difficultyLevels.length > 0) {
+      const placeholders = difficultyLevels.map(() => '?').join(',');
+      query += ` WHERE difficulty IN (${placeholders})`;
+      params.push(...difficultyLevels);
+    }
+
+    query += ' ORDER BY RANDOM() LIMIT ?';
+    params.push(count);
+
+    console.log('Query:', query, 'Params:', params);
+    const countries = await db.getAllAsync<Country>(query, params);
     console.log('Fetched countries:', countries.length);
     return countries;
   } catch (error) {

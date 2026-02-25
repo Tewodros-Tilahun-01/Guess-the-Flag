@@ -16,6 +16,7 @@ export interface Player {
 export interface GameConfig {
   questionsCount: number;
   timePerQuestion: number;
+  difficultyLevels: number[]; // Array of selected difficulty levels (1-5)
 }
 
 export interface Question {

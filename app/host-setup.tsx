@@ -18,6 +18,25 @@ export default function HostSetup() {
   const [name, setName] = useState('Host');
   const [questionsCount, setQuestionsCount] = useState('10');
   const [timePerQuestion, setTimePerQuestion] = useState('30');
+  const [difficultyLevels, setDifficultyLevels] = useState<number[]>([
+    1, 2, 3, 4, 5,
+  ]); // All selected by default
+
+  const toggleDifficulty = (level: number) => {
+    if (difficultyLevels.includes(level)) {
+      // Don't allow deselecting if it's the last one
+      if (difficultyLevels.length === 1) {
+        Alert.alert(
+          'Cannot Deselect',
+          'At least one difficulty level must be selected',
+        );
+        return;
+      }
+      setDifficultyLevels(difficultyLevels.filter((l) => l !== level));
+    } else {
+      setDifficultyLevels([...difficultyLevels, level].sort());
+    }
+  };
 
   const handleCreateLobby = () => {
     if (!name.trim()) {
@@ -38,6 +57,7 @@ export default function HostSetup() {
     setGameConfig({
       questionsCount: parseInt(questionsCount) || 10,
       timePerQuestion: parseInt(timePerQuestion) || 30,
+      difficultyLevels: difficultyLevels,
     });
 
     router.push('/lobby' as any);
@@ -118,6 +138,58 @@ export default function HostSetup() {
                   >
                     {time}s
                   </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Difficulty Levels */}
+          <View style={styles.section}>
+            <Text style={styles.label}>Difficulty Levels</Text>
+            <Text style={styles.hint}>
+              Select which difficulty levels to include (at least one required)
+            </Text>
+            <View style={styles.difficultyGrid}>
+              {[1, 2, 3, 4, 5].map((level) => (
+                <TouchableOpacity
+                  key={level}
+                  onPress={() => toggleDifficulty(level)}
+                  style={[
+                    styles.difficultyOption,
+                    difficultyLevels.includes(level) &&
+                      styles.difficultyOptionSelected,
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.difficultyNumber,
+                      difficultyLevels.includes(level) &&
+                        styles.difficultyNumberSelected,
+                    ]}
+                  >
+                    {level}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.difficultyLabel,
+                      difficultyLevels.includes(level) &&
+                        styles.difficultyLabelSelected,
+                    ]}
+                  >
+                    {level === 1
+                      ? 'Easy'
+                      : level === 2
+                        ? 'Medium'
+                        : level === 3
+                          ? 'Hard'
+                          : level === 4
+                            ? 'Expert'
+                            : 'Master'}
+                  </Text>
+                  {difficultyLevels.includes(level) && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -214,6 +286,57 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   optionTextSelected: {
+    color: '#059669',
+  },
+  hint: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 12,
+    marginTop: -4,
+  },
+  difficultyGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  difficultyOption: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  difficultyOptionSelected: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  difficultyNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  difficultyNumberSelected: {
+    color: '#059669',
+  },
+  difficultyLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  difficultyLabelSelected: {
+    color: '#047857',
+  },
+  checkmark: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    fontSize: 12,
     color: '#059669',
   },
   actions: {

@@ -108,7 +108,10 @@ export default function Game() {
   }, [playerLeftNotification]);
 
   const startSinglePlayerGame = async () => {
-    await gameEngine.generateQuestions(gameConfig.questionsCount);
+    await gameEngine.generateQuestions(
+      gameConfig.questionsCount,
+      gameConfig.difficultyLevels,
+    );
     const question = gameEngine.getCurrentQuestion();
     if (question) {
       setCurrentQuestion(question);
