@@ -53,24 +53,20 @@ export const createMultiplayerConnection = (
 };
 
 const handleServerStopped = (router: any, reason: string) => {
-  // Check if this player is the host
-  const { isHost, resetGame } = useGameStore.getState();
+  const { resetGame } = useGameStore.getState();
 
-  // Only show alert to non-host players
-  if (!isHost) {
-    Alert.alert(
-      'Game Ended',
-      reason || 'The host has ended the game.',
-      [
-        {
-          text: 'Back to Menu',
-          onPress: () => {
-            resetGame();
-            router.dismissTo('/' as any);
-          },
+  Alert.alert(
+    'Game Ended',
+    reason || 'The host has ended the game.',
+    [
+      {
+        text: 'Back to Menu',
+        onPress: () => {
+          resetGame();
+          router.dismissTo('/' as any);
         },
-      ],
-      { cancelable: false },
-    );
-  }
+      },
+    ],
+    { cancelable: false },
+  );
 };

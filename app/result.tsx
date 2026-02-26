@@ -50,9 +50,9 @@ export default function Result() {
   };
 
   const handleExit = () => {
-    resetGame();
     router.dismissAll();
     router.replace('/');
+    resetGame();
   };
 
   const getStars = (score: number) => {

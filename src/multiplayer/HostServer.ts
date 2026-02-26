@@ -14,7 +14,7 @@ export class HostServer {
   private timeRemaining: number = 0;
   private tempAnswers: Map<string, any[]> = new Map(); // Temp storage for answers
   private gracePeriodTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly GRACE_PERIOD_MS = 2000; // 2 seconds grace period
+  private readonly GRACE_PERIOD_MS = 1000; // 1 seconds grace period
 
   constructor(gameConfig: GameConfig) {
     this.gameEngine = new GameEngine();
@@ -247,16 +247,17 @@ export class HostServer {
       this.gracePeriodTimer = null;
     }
 
-    // Wait for grace period before moving to next question
-    this.gracePeriodTimer = setTimeout(() => {
-      const question = this.gameEngine.nextQuestion();
+    const question = this.gameEngine.nextQuestion();
 
-      if (question) {
-        this.sendQuestion(question);
-      } else {
+    if (question) {
+      // Move to next question immediately
+      this.sendQuestion(question);
+    } else {
+      // Game ended - wait for grace period before sending results
+      this.gracePeriodTimer = setTimeout(() => {
         this.endGame();
-      }
-    }, this.GRACE_PERIOD_MS);
+      }, this.GRACE_PERIOD_MS);
+    }
   }
 
   private endGame(): void {
@@ -308,13 +309,27 @@ export class HostServer {
         this.gracePeriodTimer = null;
       }
 
-      // Notify all clients that server is stopping
+      // Find and remove host's client connection first
+      const hostPlayer = this.players.find((p) => p.isHost);
+      if (hostPlayer) {
+        const hostSocket = this.clients.get(hostPlayer.id);
+        if (hostSocket) {
+          try {
+            hostSocket.destroy();
+          } catch (error) {
+            console.error('Error destroying host socket:', error);
+          }
+          this.clients.delete(hostPlayer.id);
+        }
+      }
 
+      // Notify remaining clients that server is stopping
       this.broadcast({
         type: 'SERVER_STOPPED',
         payload: { reason: 'Host ended the game' },
       });
 
+      // Destroy remaining client connections
       this.clients.forEach((socket) => {
         try {
           socket.destroy();

@@ -37,9 +37,9 @@ export default function Game() {
 
   const [answer, setAnswer] = useState('');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const hasSubmittedRef = useRef(true);
+  const hasSubmittedRef = useRef(false);
+  const inputRef = useRef<any>(null);
 
-  console.log('rerender is happening');
   // Handle back button for multiplayer
   useBackHandler();
 
@@ -52,6 +52,12 @@ export default function Game() {
   useEffect(() => {
     if (currentQuestion) {
       hasSubmittedRef.current = false; // Reset for new question (both modes)
+
+      // Focus input when new question appears
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+
       if (gameMode === 'single') {
         startTimer();
       }
@@ -246,6 +252,7 @@ export default function Game() {
         {/* Input */}
         <View style={styles.inputContainer}>
           <TextInput
+            ref={inputRef}
             value={answer}
             onChangeText={setAnswer}
             placeholder="Type country name..."
@@ -253,6 +260,7 @@ export default function Game() {
             style={styles.input}
             autoCapitalize="words"
             autoCorrect={false}
+            autoFocus
           />
         </View>
 
