@@ -2,7 +2,7 @@ import { useBackHandler } from '@/src/hooks/useBackHandler';
 import { getMultiplayerConnection } from '@/src/utils/connectionManager';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Image,
   StyleSheet,
@@ -31,15 +31,15 @@ export default function Game() {
     setCurrentQuestion,
     setCurrentQuestionIndex,
     setTimeRemaining,
-    addAnswer,
+    addPlayerAnswer,
     setGameState,
   } = useGameStore();
 
   const [answer, setAnswer] = useState('');
-  const [timer, setTimer] = useState<ReturnType<typeof setInterval> | null>(
-    null,
-  );
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasSubmittedRef = useRef(true);
 
+  console.log('rerender is happening');
   // Handle back button for multiplayer
   useBackHandler();
 
@@ -50,13 +50,27 @@ export default function Game() {
   }, []);
 
   useEffect(() => {
-    if (gameMode === 'single' && currentQuestion) {
-      startTimer();
+    if (currentQuestion) {
+      hasSubmittedRef.current = false; // Reset for new question (both modes)
+      if (gameMode === 'single') {
+        startTimer();
+      }
     }
     return () => {
-      if (timer) clearInterval(timer);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
   }, [currentQuestion]);
+
+  // Auto-submit when time reaches 0 (only once per question)
+  useEffect(() => {
+    if (timeRemaining === 0 && currentQuestion && !hasSubmittedRef.current) {
+      hasSubmittedRef.current = true;
+      handleSubmit();
+    }
+  }, [timeRemaining]);
 
   const startSinglePlayerGame = async () => {
     await gameEngine.generateQuestions(
@@ -72,7 +86,10 @@ export default function Game() {
   };
 
   const startTimer = () => {
-    if (timer) clearInterval(timer);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
 
     let time = gameConfig.timePerQuestion;
     setTimeRemaining(time);
@@ -82,52 +99,62 @@ export default function Game() {
       setTimeRemaining(time);
 
       if (time <= 0) {
-        clearInterval(interval);
-        handleNextQuestion();
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
       }
     }, 1000);
 
-    setTimer(interval);
+    timerRef.current = interval;
   };
 
-  const handleSubmit = () => {
+  const saveCurrentAnswer = () => {
     if (!currentQuestion) return;
 
     const answerObj = gameEngine.createAnswer(
       currentQuestion.questionIndex,
-      'single_player',
+      playerId || 'single_player',
       playerName,
       answer,
       currentQuestion.country.name,
       currentQuestion.country.flag_file,
     );
 
-    addAnswer(answerObj);
+    addPlayerAnswer(playerId || 'single_player', playerName, answerObj);
+  };
 
-    // Send answer to server in multiplayer mode
-    const connection = getMultiplayerConnection();
-    if (gameMode === 'multiplayer' && connection && playerId) {
-      connection.send({
-        type: 'SUBMIT_ANSWER',
-        payload: {
-          playerId: playerId,
-          playerName,
-          answer,
-        },
-      });
-    }
+  const handleSubmit = () => {
+    if (!currentQuestion) return;
 
+    // Single player: save answer and continue to next question
     if (gameMode === 'single') {
+      saveCurrentAnswer();
+      setAnswer('');
       handleNextQuestion();
     }
-
-    setAnswer('');
+    // Multiplayer: send answer to server (server will create answer object)
+    else if (gameMode === 'multiplayer') {
+      const connection = getMultiplayerConnection();
+      if (connection && playerId && currentQuestion) {
+        connection.send({
+          type: 'SUBMIT_ANSWER',
+          payload: {
+            playerId: playerId,
+            playerName,
+            questionIndex: currentQuestion.questionIndex,
+            answer,
+          },
+        });
+      }
+      setAnswer('');
+    }
   };
 
   const handleNextQuestion = () => {
-    if (timer) {
-      clearInterval(timer);
-      setTimer(null);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
 
     if (gameMode === 'single') {
@@ -142,7 +169,6 @@ export default function Game() {
         router.replace('/result' as any);
       }
     }
-    // In multiplayer, the server handles next question automatically
   };
 
   if (!currentQuestion) {
@@ -230,21 +256,32 @@ export default function Game() {
           />
         </View>
 
-        {/* Submit Button */}
-        <TouchableOpacity
-          onPress={handleSubmit}
-          style={styles.submitButton}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#34D399', '#06B6D4']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.submitButtonGradient}
+        {/* Submit Button - Only for single player */}
+        {gameMode === 'single' && (
+          <TouchableOpacity
+            onPress={handleSubmit}
+            style={styles.submitButton}
+            activeOpacity={0.8}
           >
-            <Text style={styles.submitButtonText}>Submit Answer ✓</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={['#34D399', '#06B6D4']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.submitButtonGradient}
+            >
+              <Text style={styles.submitButtonText}>Submit Answer ✓</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* Info text for multiplayer */}
+        {gameMode === 'multiplayer' && (
+          <View style={styles.multiplayerInfo}>
+            <Text style={styles.multiplayerInfoText}>
+              ⏱️ Answer will be submitted automatically when time ends
+            </Text>
+          </View>
+        )}
       </View>
     </LinearGradient>
   );
@@ -376,6 +413,18 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  multiplayerInfo: {
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  multiplayerInfoText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
     textAlign: 'center',
   },

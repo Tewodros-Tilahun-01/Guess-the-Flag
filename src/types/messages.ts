@@ -60,6 +60,7 @@ export interface SubmitAnswerMessage extends BaseMessage {
   payload: {
     playerId: string;
     playerName: string;
+    questionIndex: number;
     answer: string;
   };
 }
@@ -71,7 +72,11 @@ export interface NextQuestionMessage extends BaseMessage {
 export interface GameEndMessage extends BaseMessage {
   type: 'GAME_END';
   payload: {
-    answers: Answer[];
+    allAnswers: Array<{
+      playerId: string;
+      playerName: string;
+      answers: Answer[];
+    }>;
   };
 }
 

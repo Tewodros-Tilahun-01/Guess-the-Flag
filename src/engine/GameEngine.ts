@@ -22,6 +22,15 @@ export class GameEngine {
     };
   }
 
+  getQuestionByIndex(index: number): Question | null {
+    if (index < 0 || index >= this.questions.length) return null;
+
+    return {
+      country: this.questions[index],
+      questionIndex: index,
+    };
+  }
+
   nextQuestion(): Question | null {
     this.currentIndex++;
     return this.getCurrentQuestion();

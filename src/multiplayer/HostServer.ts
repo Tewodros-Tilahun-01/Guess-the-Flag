@@ -12,6 +12,9 @@ export class HostServer {
   private gameConfig: GameConfig;
   private timer: ReturnType<typeof setInterval> | null = null;
   private timeRemaining: number = 0;
+  private tempAnswers: Map<string, any[]> = new Map(); // Temp storage for answers
+  private gracePeriodTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly GRACE_PERIOD_MS = 2000; // 2 seconds grace period
 
   constructor(gameConfig: GameConfig) {
     this.gameEngine = new GameEngine();
@@ -123,22 +126,32 @@ export class HostServer {
   private handleSubmitAnswer(payload: {
     playerId: string;
     playerName: string;
+    questionIndex: number;
     answer: string;
   }): void {
-    const currentQuestion = this.gameEngine.getCurrentQuestion();
-    if (!currentQuestion) return;
+    const question = this.gameEngine.getQuestionByIndex(payload.questionIndex);
 
-    const answer = this.gameEngine.createAnswer(
-      currentQuestion.questionIndex,
+    if (!question) {
+      console.error('Invalid question index:', payload.questionIndex);
+      return;
+    }
+
+    // Create answer object on server
+    const answerObj = this.gameEngine.createAnswer(
+      question.questionIndex,
       payload.playerId,
       payload.playerName,
       payload.answer,
-      currentQuestion.country.name,
-      currentQuestion.country.flag_file,
+      question.country.name,
+      question.country.flag_file,
     );
 
-    // TODO: Store or broadcast answer results
-    console.log('Answer submitted:', answer);
+    // Store in temp storage using playerId
+    const playerAnswers = this.tempAnswers.get(payload.playerId) || [];
+    playerAnswers.push(answerObj);
+    this.tempAnswers.set(payload.playerId, playerAnswers);
+
+    console.log('Answer submitted:', answerObj);
   }
 
   private handleClientDisconnect(socket: any): void {
@@ -228,13 +241,22 @@ export class HostServer {
       this.timer = null;
     }
 
-    const question = this.gameEngine.nextQuestion();
-
-    if (question) {
-      this.sendQuestion(question);
-    } else {
-      this.endGame();
+    // Clear any existing grace period timer
+    if (this.gracePeriodTimer) {
+      clearTimeout(this.gracePeriodTimer);
+      this.gracePeriodTimer = null;
     }
+
+    // Wait for grace period before moving to next question
+    this.gracePeriodTimer = setTimeout(() => {
+      const question = this.gameEngine.nextQuestion();
+
+      if (question) {
+        this.sendQuestion(question);
+      } else {
+        this.endGame();
+      }
+    }, this.GRACE_PERIOD_MS);
   }
 
   private endGame(): void {
@@ -243,10 +265,25 @@ export class HostServer {
       this.timer = null;
     }
 
+    // Convert tempAnswers Map to array of PlayerAnswers
+    const allAnswers: any[] = [];
+    this.tempAnswers.forEach((answers, playerId) => {
+      const player = this.players.find((p) => p.id === playerId);
+      allAnswers.push({
+        playerId,
+        playerName: player ? player.name : playerId,
+        answers,
+      });
+    });
+
+    // Send all answers to clients
     this.broadcast({
       type: 'GAME_END',
-      payload: { answers: [] },
+      payload: { allAnswers },
     });
+
+    // Clear temp storage
+    this.tempAnswers.clear();
   }
 
   updateConfig(config: GameConfig): void {
@@ -264,6 +301,11 @@ export class HostServer {
       if (this.timer) {
         clearInterval(this.timer);
         this.timer = null;
+      }
+
+      if (this.gracePeriodTimer) {
+        clearTimeout(this.gracePeriodTimer);
+        this.gracePeriodTimer = null;
       }
 
       // Notify all clients that server is stopping

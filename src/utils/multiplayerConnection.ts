@@ -37,6 +37,8 @@ export const createMultiplayerConnection = (
         setTimeRemaining(message.payload.timeRemaining);
         break;
       case 'GAME_END':
+        // Store all answers from server (already in correct format!)
+        useGameStore.getState().setPlayerAnswers(message.payload.allAnswers);
         setGameState('ended');
         router.replace('/result' as any);
         break;

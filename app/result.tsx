@@ -1,8 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
   FlatList,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,7 +17,7 @@ export default function Result() {
   const router = useRouter();
 
   const {
-    answers,
+    playerAnswers,
     playerName,
     gameMode,
     resetGame,
@@ -23,134 +25,139 @@ export default function Result() {
     gameConfig,
   } = useGameStore();
 
-  const playerAnswers = answers.filter((a) => a.playerName === playerName);
-  const correctCount = playerAnswers.filter((a) => a.isCorrect).length;
-  const totalCount = gameConfig.questionsCount;
-  const score =
-    totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+  // playerAnswers is already an array of { playerId, playerName, answers }
+  // Sort by score
+  const playersData = playerAnswers.map((player) => {
+    const correctCount = player.answers.filter((a) => a.isCorrect).length;
+    const totalCount = player.answers.length;
+    const score =
+      totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+    return { ...player, score, correctCount, totalCount };
+  });
+
+  playersData.sort((a, b) => b.score - a.score);
+
+  const [selectedPlayer, setSelectedPlayer] = useState(playerName);
+
+  const selectedPlayerData = playersData.find(
+    (p) => p.playerName === selectedPlayer,
+  );
+  const selectedAnswers = selectedPlayerData?.answers || [];
 
   const handlePlayAgain = () => {
-    // Partial reset - keeps connection for multiplayer
     resetGameState();
-    router.back(); // Go back to lobby
+    router.back();
   };
 
-  const handleDifferentGame = () => {
-    // Full reset
+  const handleExit = () => {
     resetGame();
     router.dismissAll();
     router.replace('/');
   };
 
-  const getScoreColors = (): [string, string] => {
-    if (score >= 80) return ['#34D399', '#10B981'];
-    if (score >= 60) return ['#60A5FA', '#06B6D4'];
-    if (score >= 40) return ['#FBBF24', '#F59E0B'];
-    return ['#F87171', '#EC4899'];
-  };
-
-  const getScoreEmoji = () => {
-    if (score >= 80) return '🏆';
-    if (score >= 60) return '🎉';
-    if (score >= 40) return '👍';
-    return '🙁';
+  const getStars = (score: number) => {
+    if (score >= 90) return '⭐⭐⭐⭐⭐';
+    if (score >= 80) return '⭐⭐⭐⭐☆';
+    if (score >= 70) return '⭐⭐⭐☆☆';
+    if (score >= 60) return '⭐⭐☆☆☆';
+    if (score >= 50) return '⭐☆☆☆☆';
+    return '☆☆☆☆☆';
   };
 
   return (
     <LinearGradient
-      colors={['#7C3AED', '#EC4899', '#EF4444']}
+      colors={['#2563EB', '#4F46E5', '#7C3AED']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
       <View style={styles.content}>
         {/* Header */}
-        <Text style={styles.title}>Results</Text>
+        <Text style={styles.title}>🏆 Game Results</Text>
 
-        {/* Score Card */}
-        <View style={styles.scoreCard}>
-          <LinearGradient
-            colors={getScoreColors()}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.scoreCardGradient}
+        {/* Player Tabs */}
+        {gameMode === 'multiplayer' && playersData.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabsContainer}
+            contentContainerStyle={styles.tabsContent}
           >
-            <Text style={styles.scoreEmoji}>{getScoreEmoji()}</Text>
-            <Text style={styles.scoreValue}>{score}%</Text>
-            <Text style={styles.scoreText}>
-              {correctCount} / {totalCount} Correct
-            </Text>
-          </LinearGradient>
-        </View>
+            {playersData.map((player) => (
+              <TouchableOpacity
+                key={player.playerId}
+                onPress={() => setSelectedPlayer(player.playerName)}
+                style={[
+                  styles.tab,
+                  selectedPlayer === player.playerName && styles.tabActive,
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    selectedPlayer === player.playerName &&
+                      styles.tabTextActive,
+                  ]}
+                >
+                  {player.playerName === playerName ? 'You' : player.playerName}
+                  : {player.score}%
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
-        {/* Answers List */}
-        <View style={styles.answersHeader}>
-          <Text style={styles.answersTitle}>Your Answers</Text>
-          <View style={styles.answersBadge}>
-            <Text style={styles.answersBadgeText}>
-              {playerAnswers.length} questions
+        {/* Performance Card */}
+        <View style={styles.performanceCard}>
+          <Text style={styles.performanceTitle}>📊 Your Performance</Text>
+          <View style={styles.performanceContent}>
+            <Text style={styles.performanceScore}>
+              Score: {selectedPlayerData?.score}% •{' '}
+              {selectedPlayerData?.correctCount}/
+              {selectedPlayerData?.totalCount}
+            </Text>
+            <Text style={styles.performanceStars}>
+              {getStars(selectedPlayerData?.score || 0)}
             </Text>
           </View>
         </View>
 
-        <FlatList
-          data={playerAnswers}
-          keyExtractor={(item, index) => `${item.questionIndex}-${index}`}
-          renderItem={({ item }) => (
-            <View style={styles.answerCard}>
-              <LinearGradient
-                colors={
-                  item.isCorrect
-                    ? ['#D1FAE5', '#A7F3D0']
-                    : ['#FEE2E2', '#FECACA']
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.answerCardGradient}
-              >
-                {/* Flag */}
-                <View style={styles.answerFlag}>
-                  <Image
-                    source={{
-                      uri: getFlagUrlMD(item.flagFile.replace('.png', '')),
-                    }}
-                    style={styles.answerFlagImage}
-                    resizeMode="cover"
-                  />
-                </View>
+        {/* Answers Section */}
+        <Text style={styles.answersTitle}>🌍 Your Answers</Text>
 
-                {/* Content */}
-                <View style={styles.answerContent}>
-                  <View style={styles.answerStatus}>
-                    <Text
-                      style={[
-                        styles.answerIcon,
-                        item.isCorrect
-                          ? styles.answerIconCorrect
-                          : styles.answerIconWrong,
-                      ]}
-                    >
-                      {item.isCorrect ? '✓' : '✗'}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.answerStatusText,
-                        item.isCorrect
-                          ? styles.answerStatusTextCorrect
-                          : styles.answerStatusTextWrong,
-                      ]}
-                    >
-                      {item.isCorrect ? 'Correct' : 'Wrong'}
-                    </Text>
-                  </View>
-                  <Text style={styles.answerCountry}>{item.correctAnswer}</Text>
-                  {!item.isCorrect && (
-                    <Text style={styles.answerUserAnswer}>
-                      You answered: {item.answer || '(no answer)'}
-                    </Text>
-                  )}
-                </View>
-              </LinearGradient>
+        <FlatList
+          data={selectedAnswers}
+          keyExtractor={(item, index) => `${item.questionIndex}-${index}`}
+          renderItem={({ item, index }) => (
+            <View style={styles.answerCard}>
+              <View style={styles.answerHeader}>
+                <Image
+                  source={{
+                    uri: getFlagUrlMD(item.flagFile.replace('.png', '')),
+                  }}
+                  style={styles.answerFlag}
+                  resizeMode="cover"
+                />
+                <Text style={styles.answerQuestion}>
+                  Q{index + 1}: {item.correctAnswer}
+                </Text>
+              </View>
+              <View style={styles.answerRow}>
+                <Text
+                  style={[
+                    styles.answerIcon,
+                    item.isCorrect
+                      ? styles.answerIconCorrect
+                      : styles.answerIconWrong,
+                  ]}
+                >
+                  {item.isCorrect ? '✓' : '✗'}
+                </Text>
+                <Text style={styles.answerText}>
+                  You wrote: {item.answer || '(no answer)'}
+                </Text>
+              </View>
             </View>
           )}
           style={styles.answersList}
@@ -168,25 +175,18 @@ export default function Result() {
               colors={['#34D399', '#10B981']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.playAgainButtonGradient}
+              style={styles.buttonGradient}
             >
-              <Text style={styles.playAgainButtonText}>🔄 Play Again</Text>
+              <Text style={styles.buttonText}>Play Again</Text>
             </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={handleDifferentGame}
-            style={[
-              styles.differentGameButton,
-              gameMode === 'multiplayer' && styles.differentGameButtonSpacing,
-            ]}
+            onPress={handleExit}
+            style={styles.exitButton}
             activeOpacity={0.8}
           >
-            <View style={styles.differentGameButtonContent}>
-              <Text style={styles.differentGameButtonText}>
-                🏠 Different Game
-              </Text>
-            </View>
+            <Text style={styles.exitButtonText}>Exit</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -204,110 +204,111 @@ const styles = StyleSheet.create({
     paddingTop: 64,
   },
   title: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 32,
-  },
-  scoreCard: {
     marginBottom: 24,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
-    elevation: 12,
   },
-  scoreCardGradient: {
-    paddingHorizontal: 32,
-    paddingVertical: 40,
+  tabsContainer: {
+    marginBottom: 24,
+    maxHeight: 60,
   },
-  scoreEmoji: {
-    fontSize: 60,
-    textAlign: 'center',
-    marginBottom: 8,
+  tabsContent: {
+    paddingHorizontal: 4,
   },
-  scoreValue: {
-    fontSize: 60,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  scoreText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-  },
-  answersHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  answersTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  answersBadge: {
-    borderRadius: 999,
+  tab: {
+    borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginHorizontal: 4,
   },
-  answersBadgeText: {
-    fontSize: 14,
+  tabActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  tabText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  answersList: {
-    flex: 1,
+  tabTextActive: {
+    color: '#4F46E5',
   },
-  answerCard: {
-    marginBottom: 12,
+  performanceCard: {
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
+    padding: 20,
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
   },
-  answerCardGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
+  performanceTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 12,
   },
-  answerFlag: {
-    marginRight: 16,
+  performanceContent: {
+    alignItems: 'center',
+  },
+  performanceScore: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginBottom: 8,
+  },
+  performanceStars: {
+    fontSize: 24,
+  },
+  answersTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  answersList: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  answerCard: {
     borderRadius: 12,
-    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  answerFlagImage: {
-    width: 72,
-    height: 54,
-  },
-  answerContent: {
-    flex: 1,
-  },
-  answerStatus: {
+  answerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
+  answerFlag: {
+    width: 48,
+    height: 36,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  answerQuestion: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    flex: 1,
+  },
+  answerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   answerIcon: {
-    fontSize: 24,
+    fontSize: 20,
+    marginRight: 8,
   },
   answerIconCorrect: {
     color: '#10B981',
@@ -315,72 +316,47 @@ const styles = StyleSheet.create({
   answerIconWrong: {
     color: '#EF4444',
   },
-  answerStatusText: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  answerStatusTextCorrect: {
-    color: '#047857',
-  },
-  answerStatusTextWrong: {
-    color: '#B91C1C',
-  },
-  answerCountry: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  answerUserAnswer: {
+  answerText: {
     fontSize: 14,
     color: '#6B7280',
+    flex: 1,
   },
   actions: {
-    paddingTop: 16,
     paddingBottom: 32,
   },
   playAgainButton: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  playAgainButtonGradient: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
+  buttonGradient: {
+    paddingVertical: 16,
   },
-  playAgainButtonText: {
+  buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
   },
-  differentGameButton: {
+  exitButton: {
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
+    paddingVertical: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  differentGameButtonSpacing: {
-    marginTop: 12,
-  },
-  differentGameButtonContent: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-  },
-  differentGameButtonText: {
+  exitButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#7C3AED',
+    color: '#4F46E5',
     textAlign: 'center',
   },
 });

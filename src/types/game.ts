@@ -34,6 +34,12 @@ export interface Answer {
   flagFile: string;
 }
 
+export interface PlayerAnswers {
+  playerId: string;
+  playerName: string;
+  answers: Answer[];
+}
+
 export type GameMode = 'single' | 'multiplayer';
 export type GameState = 'menu' | 'lobby' | 'playing' | 'ended';
 
@@ -47,7 +53,7 @@ export interface GameStore {
   gameConfig: GameConfig;
   currentQuestion: Question | null;
   currentQuestionIndex: number;
-  answers: Answer[];
+  playerAnswers: PlayerAnswers[]; // Array of player answers
   timeRemaining: number;
   playerLeftNotification: string | null;
 
@@ -63,7 +69,12 @@ export interface GameStore {
   setGameConfig: (config: GameConfig) => void;
   setCurrentQuestion: (question: Question | null) => void;
   setCurrentQuestionIndex: (index: number) => void;
-  addAnswer: (answer: Answer) => void;
+  addPlayerAnswer: (
+    playerId: string,
+    playerName: string,
+    answer: Answer,
+  ) => void;
+  setPlayerAnswers: (playerAnswers: PlayerAnswers[]) => void;
   setTimeRemaining: (time: number) => void;
   setPlayerLeftNotification: (playerName: string | null) => void;
   resetGame: () => void;

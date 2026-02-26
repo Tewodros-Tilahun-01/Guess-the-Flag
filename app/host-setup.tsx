@@ -100,7 +100,7 @@ export default function HostSetup() {
           <View style={styles.section}>
             <Text style={styles.label}>Number of Questions</Text>
             <View style={styles.optionsRow}>
-              {[5, 10, 15, 20].map((count) => (
+              {[2, 10, 15, 20].map((count) => (
                 <TouchableOpacity
                   key={count}
                   onPress={() => setQuestionsCount(count)}
