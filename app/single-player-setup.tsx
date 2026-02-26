@@ -12,8 +12,13 @@ import { useGameStore } from '../src/store/gameStore';
 
 export default function SinglePlayerSetup() {
   const router = useRouter();
-  const { setGameConfig, setPlayerName, setGameMode, gameConfig } =
-    useGameStore();
+  const {
+    setGameConfig,
+    setPlayerName,
+    setGameMode,
+    gameConfig,
+    resetGameState,
+  } = useGameStore();
   const [name, setName] = useState('Player 1');
   const [questionsCount, setQuestionsCount] = useState(
     gameConfig.questionsCount,
@@ -45,6 +50,7 @@ export default function SinglePlayerSetup() {
       timePerQuestion: timePerQuestion,
       difficultyLevels: difficultyLevels,
     });
+    resetGameState();
     router.push('/game' as any);
   };
 

@@ -38,7 +38,7 @@ export const createMultiplayerConnection = (
         break;
       case 'GAME_END':
         setGameState('ended');
-        router.push('/result' as any);
+        router.replace('/result' as any);
         break;
       case 'SERVER_STOPPED':
         handleServerStopped(router, message.payload.reason);

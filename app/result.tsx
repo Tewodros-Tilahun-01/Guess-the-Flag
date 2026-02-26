@@ -14,19 +14,24 @@ import { getFlagUrlMD } from '../src/utils/flagUrl';
 export default function Result() {
   const router = useRouter();
 
-  const { answers, playerName, gameMode, resetGame, resetGameState } =
-    useGameStore();
+  const {
+    answers,
+    playerName,
+    gameMode,
+    resetGame,
+    resetGameState,
+    gameConfig,
+  } = useGameStore();
 
   const playerAnswers = answers.filter((a) => a.playerName === playerName);
   const correctCount = playerAnswers.filter((a) => a.isCorrect).length;
-  const totalCount = playerAnswers.length;
+  const totalCount = gameConfig.questionsCount;
   const score =
     totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
 
   const handlePlayAgain = () => {
     // Partial reset - keeps connection for multiplayer
     resetGameState();
-    router.back();
     router.back(); // Go back to lobby
   };
 
@@ -48,7 +53,7 @@ export default function Result() {
     if (score >= 80) return '🏆';
     if (score >= 60) return '🎉';
     if (score >= 40) return '👍';
-    return '💪';
+    return '🙁';
   };
 
   return (
@@ -154,22 +159,20 @@ export default function Result() {
 
         {/* Action Buttons */}
         <View style={styles.actions}>
-          {gameMode === 'multiplayer' && (
-            <TouchableOpacity
-              onPress={handlePlayAgain}
-              style={styles.playAgainButton}
-              activeOpacity={0.8}
+          <TouchableOpacity
+            onPress={handlePlayAgain}
+            style={styles.playAgainButton}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#34D399', '#10B981']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.playAgainButtonGradient}
             >
-              <LinearGradient
-                colors={['#34D399', '#10B981']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.playAgainButtonGradient}
-              >
-                <Text style={styles.playAgainButtonText}>🔄 Play Again</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+              <Text style={styles.playAgainButtonText}>🔄 Play Again</Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleDifferentGame}
@@ -345,13 +348,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
+    marginBottom: 12,
   },
   playAgainButtonGradient: {
     paddingHorizontal: 32,
     paddingVertical: 20,
   },
   playAgainButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
@@ -374,7 +378,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   differentGameButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#7C3AED',
     textAlign: 'center',
