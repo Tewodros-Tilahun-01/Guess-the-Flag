@@ -79,10 +79,10 @@ export default function Result() {
 
   const getStars = (score: number) => {
     if (score >= 90) return '⭐⭐⭐⭐⭐';
-    if (score >= 80) return '⭐⭐⭐⭐☆';
-    if (score >= 70) return '⭐⭐⭐☆☆';
-    if (score >= 60) return '⭐⭐☆☆☆';
-    if (score >= 50) return '⭐☆☆☆☆';
+    if (score >= 70) return '⭐⭐⭐⭐☆';
+    if (score >= 60) return '⭐⭐⭐☆☆';
+    if (score >= 50) return '⭐⭐☆☆☆';
+    if (score >= 30) return '⭐☆☆☆☆';
     return '☆☆☆☆☆';
   };
 

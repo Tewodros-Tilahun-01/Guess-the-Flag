@@ -5,14 +5,22 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "guesstheflag",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6366F1"
+    },
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.guesstheflag.app"
+      "bundleIdentifier": "com.guesstheflag.app",
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#6366F1"
       },
       "package": "com.guesstheflag.app",
@@ -21,7 +29,8 @@
       "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"]
     },
     "web": {
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
