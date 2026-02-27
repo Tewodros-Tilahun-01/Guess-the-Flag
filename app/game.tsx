@@ -1,10 +1,10 @@
 import { useBackHandler } from '@/src/hooks/useBackHandler';
 import { getMultiplayerConnection } from '@/src/utils/connectionManager';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -273,7 +273,8 @@ export default function Game() {
                   ),
                 }}
                 style={styles.flagImage}
-                resizeMode="cover"
+                contentFit="cover"
+                cachePolicy="memory-disk"
               />
             </View>
           </View>

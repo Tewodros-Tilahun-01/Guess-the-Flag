@@ -1,10 +1,10 @@
 import { getMultiplayerConnection } from '@/src/utils/connectionManager';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   FlatList,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -159,7 +159,8 @@ export default function Result() {
                     uri: getFlagUrlMD(item.flagFile.replace('.png', '')),
                   }}
                   style={styles.answerFlag}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
                 />
                 <Text style={styles.answerQuestion}>
                   Q{index + 1}: {item.correctAnswer}
