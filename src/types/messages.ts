@@ -9,6 +9,7 @@ export type MessageType =
   | 'NEW_QUESTION'
   | 'SUBMIT_ANSWER'
   | 'NEXT_QUESTION'
+  | 'CALCULATING_RESULTS'
   | 'GAME_END'
   | 'TIME_UPDATE'
   | 'SERVER_STOPPED'
@@ -69,6 +70,10 @@ export interface NextQuestionMessage extends BaseMessage {
   type: 'NEXT_QUESTION';
 }
 
+export interface CalculatingResultsMessage extends BaseMessage {
+  type: 'CALCULATING_RESULTS';
+}
+
 export interface GameEndMessage extends BaseMessage {
   type: 'GAME_END';
   payload: {
@@ -111,6 +116,7 @@ export type GameMessage =
   | NewQuestionMessage
   | SubmitAnswerMessage
   | NextQuestionMessage
+  | CalculatingResultsMessage
   | GameEndMessage
   | TimeUpdateMessage
   | ServerStoppedMessage

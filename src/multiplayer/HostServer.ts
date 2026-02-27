@@ -9,12 +9,13 @@ export class HostServer {
   private clients: Map<string, any> = new Map();
   private gameEngine: GameEngine;
   private players: Player[] = [];
+  private leftPlayers: Map<string, string> = new Map(); // playerId -> playerName
   private gameConfig: GameConfig;
   private timer: ReturnType<typeof setInterval> | null = null;
   private timeRemaining: number = 0;
   private tempAnswers: Map<string, any[]> = new Map(); // Temp storage for answers
   private gracePeriodTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly GRACE_PERIOD_MS = 1000; // 1 seconds grace period
+  private readonly GRACE_PERIOD_MS = 2000; // 2 seconds grace period
 
   constructor(gameConfig: GameConfig) {
     this.gameEngine = new GameEngine();
@@ -158,11 +159,12 @@ export class HostServer {
     for (const [playerId, clientSocket] of this.clients.entries()) {
       if (clientSocket === socket) {
         const player = this.players.find((p) => p.id === playerId);
-        this.clients.delete(playerId);
-        this.players = this.players.filter((p) => p.id !== playerId);
 
-        // Broadcast player left notification
+        // Store player name before removing from players list
         if (player) {
+          this.leftPlayers.set(player.id, player.name);
+
+          // Broadcast player left notification
           this.broadcast({
             type: 'PLAYER_LEFT',
             payload: {
@@ -171,6 +173,9 @@ export class HostServer {
             },
           });
         }
+
+        this.clients.delete(playerId);
+        this.players = this.players.filter((p) => p.id !== playerId);
 
         this.broadcastPlayerList();
         break;
@@ -253,7 +258,10 @@ export class HostServer {
       // Move to next question immediately
       this.sendQuestion(question);
     } else {
-      // Game ended - wait for grace period before sending results
+      // Game ended - notify players we're calculating results
+      this.broadcast({ type: 'CALCULATING_RESULTS' });
+
+      // Wait for grace period before sending results
       this.gracePeriodTimer = setTimeout(() => {
         this.endGame();
       }, this.GRACE_PERIOD_MS);
@@ -269,10 +277,15 @@ export class HostServer {
     // Convert tempAnswers Map to array of PlayerAnswers
     const allAnswers: any[] = [];
     this.tempAnswers.forEach((answers, playerId) => {
+      // Try to find player in current players, then in left players
       const player = this.players.find((p) => p.id === playerId);
+      const playerName = player
+        ? player.name
+        : this.leftPlayers.get(playerId) || playerId;
+
       allAnswers.push({
         playerId,
-        playerName: player ? player.name : playerId,
+        playerName,
         answers,
       });
     });
@@ -283,8 +296,9 @@ export class HostServer {
       payload: { allAnswers },
     });
 
-    // Clear temp storage
+    // Clear temp storage and left players
     this.tempAnswers.clear();
+    this.leftPlayers.clear();
   }
 
   updateConfig(config: GameConfig): void {

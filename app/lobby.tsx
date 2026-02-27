@@ -43,6 +43,14 @@ export default function Lobby() {
   const [connection, setConnection] = useState<ClientConnection | null>(null);
   const [showQRCode, setShowQRCode] = useState(false);
 
+  // Sync local isReady state with server player list
+  useEffect(() => {
+    const currentPlayer = players.find((p) => p.id === playerId);
+    if (currentPlayer && !isHost) {
+      setIsReady(currentPlayer.isReady);
+    }
+  }, [players, playerId, isHost]);
+
   useEffect(() => {
     if (isHost) {
       initializeHost();

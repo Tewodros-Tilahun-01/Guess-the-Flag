@@ -36,6 +36,9 @@ export const createMultiplayerConnection = (
       case 'TIME_UPDATE':
         setTimeRemaining(message.payload.timeRemaining);
         break;
+      case 'CALCULATING_RESULTS':
+        setGameState('calculating');
+        break;
       case 'GAME_END':
         // Store all answers from server (already in correct format!)
         useGameStore.getState().setPlayerAnswers(message.payload.allAnswers);

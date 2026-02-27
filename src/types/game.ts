@@ -41,7 +41,7 @@ export interface PlayerAnswers {
 }
 
 export type GameMode = 'single' | 'multiplayer';
-export type GameState = 'menu' | 'lobby' | 'playing' | 'ended';
+export type GameState = 'menu' | 'lobby' | 'playing' | 'calculating' | 'ended';
 
 export interface GameStore {
   gameMode: GameMode | null;

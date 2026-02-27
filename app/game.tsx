@@ -28,6 +28,7 @@ export default function Game() {
     currentQuestion,
     currentQuestionIndex,
     timeRemaining,
+    gameState,
     setCurrentQuestion,
     setCurrentQuestionIndex,
     setTimeRemaining,
@@ -37,8 +38,8 @@ export default function Game() {
 
   const [answer, setAnswer] = useState('');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const hasSubmittedRef = useRef(false);
-  const inputRef = useRef<any>(null);
+  const hasSubmittedRef = useRef(true);
+  const inputRef = useRef<TextInput>(null);
 
   // Handle back button for multiplayer
   useBackHandler();
@@ -56,7 +57,7 @@ export default function Game() {
       // Focus input when new question appears
       setTimeout(() => {
         inputRef.current?.focus();
-      }, 100);
+      }, 150);
 
       if (gameMode === 'single') {
         startTimer();
@@ -77,6 +78,12 @@ export default function Game() {
       handleSubmit();
     }
   }, [timeRemaining]);
+
+  useEffect(() => {
+    if (gameState === 'calculating') {
+      inputRef.current?.blur();
+    }
+  }, [gameState]);
 
   const startSinglePlayerGame = async () => {
     await gameEngine.generateQuestions(
@@ -201,6 +208,29 @@ export default function Game() {
         {/* Player Left Notification */}
         <PlayerLeftNotification />
 
+        {/* Calculating Results Overlay */}
+        {gameState === ('calculating' as const) && (
+          <View style={styles.calculatingOverlay}>
+            <View style={styles.calculatingCard}>
+              <LinearGradient
+                colors={['#FFFFFF', '#F9FAFB']}
+                style={styles.calculatingCardGradient}
+              >
+                <Text style={styles.calculatingEmoji}>🎯</Text>
+                <Text style={styles.calculatingTitle}>Calculating Results</Text>
+                <Text style={styles.calculatingSubtitle}>
+                  Please wait while we process all answers...
+                </Text>
+                <View style={styles.loadingDots}>
+                  <View style={[styles.dot, styles.dot1]} />
+                  <View style={[styles.dot, styles.dot2]} />
+                  <View style={[styles.dot, styles.dot3]} />
+                </View>
+              </LinearGradient>
+            </View>
+          </View>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.questionBadge}>
@@ -312,6 +342,70 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 64,
+  },
+  calculatingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  calculatingCard: {
+    width: '85%',
+    maxWidth: 350,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  calculatingCardGradient: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  calculatingEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  calculatingTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  calculatingSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  loadingDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#7C3AED',
+    marginHorizontal: 4,
+  },
+  dot1: {
+    opacity: 0.3,
+  },
+  dot2: {
+    opacity: 0.6,
+  },
+  dot3: {
+    opacity: 1,
   },
   header: {
     flexDirection: 'row',

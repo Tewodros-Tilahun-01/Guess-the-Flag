@@ -1,6 +1,7 @@
+import { getMultiplayerConnection } from '@/src/utils/connectionManager';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   FlatList,
   Image,
@@ -19,11 +20,28 @@ export default function Result() {
   const {
     playerAnswers,
     playerName,
+    playerId,
     gameMode,
     resetGame,
     resetGameState,
-    gameConfig,
+    isHost,
   } = useGameStore();
+
+  useEffect(() => {
+    // Send "not ready" status when reaching result page (multiplayer only, non-host)
+    if (gameMode === 'multiplayer' && playerId && !isHost) {
+      const connection = getMultiplayerConnection();
+      if (connection) {
+        connection.send({
+          type: 'PLAYER_READY',
+          payload: {
+            playerId: playerId,
+            isReady: false,
+          },
+        });
+      }
+    }
+  }, []);
 
   // playerAnswers is already an array of { playerId, playerName, answers }
   // Sort by score
@@ -53,6 +71,10 @@ export default function Result() {
     router.dismissAll();
     router.replace('/');
     resetGame();
+    const connection = getMultiplayerConnection();
+    if (connection) {
+      connection.disconnect();
+    }
   };
 
   const getStars = (score: number) => {
