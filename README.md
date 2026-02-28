@@ -8,6 +8,20 @@ A fun and educational mobile game where players test their geography knowledge b
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+## 📲 Download
+
+<div align="center">
+  <a href="https://github.com/Tewodros-Tilahun-01/Guess-the-Flag/releases/download/v1.0.0/guess.the.flag.apk">
+    <img src="./assets/images/icon.png" alt="Guess the Flag Icon" width="120" height="120" />
+  </a>
+  
+  ### [⬇️ Download APK (v1.0.0)](https://github.com/Tewodros-Tilahun-01/Guess-the-Flag/releases/download/v1.0.0/guess.the.flag.apk)
+  
+  **Compatible with most Android devices**
+</div>
+
+---
+
 ## ✨ Features
 
 ### 🎮 Game Modes
@@ -308,6 +322,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Flag images provided by [flagcdn.com](https://flagcdn.com)
 - Country data sourced from public domain datasets
 - Built with [Expo](https://expo.dev) and [React Native](https://reactnative.dev)
+
+## 🎉 Origin Story
+
+This game was born from a friendly bet between friends about who knows more country flags. What started as a simple challenge turned into a full-featured mobile game that anyone can enjoy! Now you can settle your own flag debates with friends using multiplayer mode. 🏁
 
 ## 📧 Contact
 
